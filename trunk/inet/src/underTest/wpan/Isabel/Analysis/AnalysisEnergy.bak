@@ -1,7 +1,0 @@
-
-simple AnalysisEnergy
-    parameters:
-		numHosts: numeric,
-        hostModuleName: string;
-    gates:
-endsimple

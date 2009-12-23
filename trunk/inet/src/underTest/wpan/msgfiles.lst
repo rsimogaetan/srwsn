@@ -1,4 +1,0 @@
-./NetworkInterfaces/Contract/Ieee802154MacPhyPrimitives.msg
-./NetworkInterfaces/macLayer/Ieee802154Frame.msg
-./Network/Contract/Ieee802154NetworkCtrlInfo.msg
-./Applications/Contract/Ieee802154AppPkt.msg
