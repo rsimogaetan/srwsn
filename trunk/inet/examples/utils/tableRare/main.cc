@@ -10,7 +10,7 @@
 #include <iostream>
 using namespace std;
 #include <stdlib.h>
-#include "TableRare.h"
+#include "../../../src/srwsn/networklayer/TableRare.h"
 
 // Print the usage format and exit with an error.
 void usage(char *arg0){
