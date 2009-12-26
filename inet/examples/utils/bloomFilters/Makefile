@@ -5,14 +5,14 @@ EXEC=bloomFilter
 
 all: $(EXEC)
 
-bloomFilter: BloomFilter.o main.o
+bloomFilter: ../../../src/srwsn/networklayer/BloomFilter.o main.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cc
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:
-	rm -rf *.o
+	rm -rf *.o ../../../src/srwsn/networklayer/BloomFilter.o
 
 mrproper: clean
 	rm -rf $(EXEC)

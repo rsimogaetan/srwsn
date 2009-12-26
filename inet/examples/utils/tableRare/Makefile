@@ -5,14 +5,14 @@ EXEC=tableRare
 
 all: $(EXEC)
 
-tableRare: TableRare.o main.o
+tableRare: ../../../src/srwsn/networklayer/TableRare.o main.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cc
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:
-	rm -rf *.o
+	rm -rf *.o ../../../src/srwsn/networklayer/TableRare.o
 
 mrproper: clean
 	rm -rf $(EXEC)
