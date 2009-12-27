@@ -3,17 +3,17 @@ package inet.examples.srwsn;
 // This is an implementation example of our Semantic Routing 
 // application of Wireless Sensor Network platform 
 
-import inet.srwsn.nodes.srwsnHost;
+import inet.srwsn.nodes.srwsn80211Host;
 import inet.world.ChannelControl;
 
-network srwsn
+network srwsn80211
 {
     parameters:
         int numHosts;
         double playgroundSizeX;
         double playgroundSizeY;
     submodules:
-        host[numHosts]: srwsnHost {
+        host[numHosts]: srwsn80211Host {
             parameters:
                 @display("r=,,#707070");
         }

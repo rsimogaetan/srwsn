@@ -5,6 +5,6 @@ package inet.srwsn.linklayer;
 
 import inet.linklayer.ieee80211.Ieee80211NicAdhoc;
 
-module srwsnNic extends Ieee80211NicAdhoc
+module srwsn80211Nic extends Ieee80211NicAdhoc
 {
 }
