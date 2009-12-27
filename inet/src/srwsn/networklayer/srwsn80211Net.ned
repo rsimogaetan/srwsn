@@ -4,6 +4,6 @@ package inet.srwsn.networklayer;
 // We use a link layer wich already exists in INET
 import inet.nodes.inet.NetworkLayer;
 
-module srwsn extends NetworkLayer
+module srwsn80211Net extends NetworkLayer
 {
 }

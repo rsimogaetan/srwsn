@@ -7,10 +7,10 @@ import inet.mobility.BasicMobility;
 import inet.networklayer.common.InterfaceTable;
 import inet.networklayer.ipv4.RoutingTable;
 
-import inet.srwsn.linklayer.srwsnNic;
-import inet.srwsn.networklayer.srwsn;
+import inet.srwsn.linklayer.srwsn80211Nic;
+import inet.srwsn.networklayer.srwsn80211Net;
 
-module srwsnHost
+module srwsn80211Host
 {
     parameters:
         @node();
@@ -37,7 +37,7 @@ module srwsnHost
                 @display("p=60,230");
         }
 
-        networkLayer: srwsn {
+        networkLayer: srwsn80211Net {
             parameters:
                 proxyARP = false;
                 @display("p=248,247;q=queue");
@@ -45,7 +45,7 @@ module srwsnHost
                 ifIn[1];
                 ifOut[1];
         }
-        wlan: srwsnNic {
+        wlan: srwsn80211Nic {
             parameters:
                 @display("p=248,349;q=queue");
         }
