@@ -5,8 +5,8 @@ package inet.examples.wireless.WiMAXHandover;
 
 
 import inet.examples.wireless.WiMAXHandover.Bild;
-import inet.underTest.nodes.WiMAX.WiMAXMS;
-import inet.underTest.nodes.WiMAX.WiMAXAP;
+import inet.underTest2.underTest.nodes.WiMAX.WiMAXMS;
+import inet.underTest2.underTest.nodes.WiMAX.WiMAXAP;
 import inet.world.ChannelControl;
 
 module HandoverNetworkClusterMS6

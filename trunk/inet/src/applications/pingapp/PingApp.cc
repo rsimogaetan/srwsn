@@ -67,6 +67,8 @@ void PingApp::initialize()
 
 void PingApp::handleMessage(cMessage *msg)
 {
+	EV << "PingApp::handleMessage\n";
+
     if (msg->isSelfMessage())
     {
         // on first call we need to initialize
@@ -81,14 +83,16 @@ void PingApp::handleMessage(cMessage *msg)
         // send a ping
         sendPing();
 
+
         // then schedule next one if needed
         scheduleNextPing(msg);
     }
     else
     {
         // process ping response
-        processPingResponse(check_and_cast<PingPayload *>(msg));
+    	processPingResponse(check_and_cast<PingPayload *>(msg));
     }
+
 }
 
 void PingApp::sendPing()
@@ -108,7 +112,7 @@ void PingApp::sendPing()
 
 void PingApp::scheduleNextPing(cMessage *timer)
 {
-    simtime_t nextPing = simTime() + intervalp->doubleValue();
+	simtime_t nextPing = simTime() + intervalp->doubleValue();
     sendSeqNo++;
     if ((count==0 || sendSeqNo<count) && (stopTime==0 || nextPing<stopTime))
         scheduleAt(nextPing, timer);

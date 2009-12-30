@@ -1,6 +1,6 @@
 package inet.examples.wpan.StarNet;
 
-import inet.underTest.nodes.wpan.Ieee802154Node;
+import inet.underTest2.underTest.nodes.wpan.Ieee802154Node;
 import inet.world.ChannelControl;
 
 network Ieee802154StarNet

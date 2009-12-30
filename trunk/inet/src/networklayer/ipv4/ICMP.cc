@@ -30,6 +30,8 @@ Define_Module(ICMP);
 
 void ICMP::handleMessage(cMessage *msg)
 {
+	EV<< "ICMP::handleMessage\n";
+
     cGate *arrivalGate = msg->getArrivalGate();
 
     // process arriving ICMP message
