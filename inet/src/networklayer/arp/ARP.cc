@@ -120,6 +120,8 @@ ARP::~ARP()
 
 void ARP::handleMessage(cMessage *msg)
 {
+    EV << "ARP::handleMessage\n";
+
     if (msg->isSelfMessage())
     {
         requestTimedOut(msg);
@@ -302,6 +304,8 @@ void ARP::sendPacketToNIC(cMessage *msg, InterfaceEntry *ie, const MACAddress& m
 
 void ARP::sendARPRequest(InterfaceEntry *ie, IPAddress ipAddress)
 {
+	EV << "ARP::sendARPRequest\n";
+
     // find our own IP address and MAC address on the given interface
     MACAddress myMACAddress = ie->getMacAddress();
     IPAddress myIPAddress = ie->ipv4Data()->getIPAddress();
@@ -321,6 +325,7 @@ void ARP::sendARPRequest(InterfaceEntry *ie, IPAddress ipAddress)
     static MACAddress broadcastAddress("ff:ff:ff:ff:ff:ff");
     sendPacketToNIC(arp, ie, broadcastAddress);
     numRequestsSent++;
+
 }
 
 void ARP::requestTimedOut(cMessage *selfmsg)

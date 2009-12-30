@@ -718,6 +718,7 @@ void IP::sendDatagramToOutput(IPDatagram *datagram, InterfaceEntry *ie, IPAddres
     routingDecision->setNextHopAddr(nextHopAddr);
     datagram->setControlInfo(routingDecision);
 
+	EV << "GSI : IP::sendDatagramToOutput\n";
     send(datagram, queueOutGate);
 }
 

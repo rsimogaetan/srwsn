@@ -21,8 +21,8 @@ package inet.examples.adhoc.net80211_aodv_VITA;
 
 import inet.networklayer.autorouting.FlatNetworkConfigurator;
 import inet.nodes.adhoc.MobileHost;
-import inet.underTest.nodes.adhoc.FixManetRoutingHostVITA;
-import inet.underTest.nodes.adhoc.MobileManetRoutingHostVITA;
+import inet.underTest2.underTest.nodes.adhoc.FixManetRoutingHostVITA;
+import inet.underTest2.underTest.nodes.adhoc.MobileManetRoutingHostVITA;
 import inet.world.ChannelControl;
 
 
