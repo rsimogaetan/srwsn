@@ -9,8 +9,8 @@
 
 #include <iostream>
 using namespace std;
-#include <stdlib.h>
-#include "../../../src/srwsn/networklayer/TableRare.h"
+#include <cstdlib>
+#include "TableRARE.h"
 
 // Print the usage format and exit with an error.
 void usage(char *arg0){
@@ -23,7 +23,7 @@ int main(int argc, char ** argv)
 {
 	if(argc != 2) usage(argv[0]);
 
-	TableRare *TableR = new TableRare(argv[1]);
+	TableRARE *TableR = new TableRARE(argv[1]);
 	TableR->toString();
 	return EXIT_SUCCESS;
 }

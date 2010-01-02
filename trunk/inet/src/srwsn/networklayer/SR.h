@@ -4,6 +4,8 @@
 #include "QueueBase.h"
 #include "InterfaceTableAccess.h"
 #include "IPControlInfo.h"
+#include "BloomFilter.h"
+#include "TableRARE.h"
 
 class ARPPacket;
 //class SRNetDiscovery;
@@ -14,7 +16,10 @@ class ARPPacket;
 class INET_API SR : public QueueBase
 {
   protected:
-    IInterfaceTable *ift;
+	IInterfaceTable *ift;
+	BloomFilter *bf;
+	TableRARE *tr;
+
     cGate *queueOutGate; // the most frequently used output gate
     bool isSink;   // Is this node the sink ?
 

@@ -1,18 +1,13 @@
 #ifndef __BLOOMFILTER_H
 #define __BLOOMFILTER_H
 
-#include <omnetpp.h>
-
-class BloomFilter : public cSimpleModule
-{
+class BloomFilter {
 public:
-	BloomFilter();  // The Constructor
+	BloomFilter(const char * name);  // The Constructor
 	~BloomFilter();                  // The Destructor
 	void toString();				 // For information
 private:
-	virtual void initialize();
-	bool ready;
-	int maxEntry;
+	char * my_name;
 };
 
 #endif
