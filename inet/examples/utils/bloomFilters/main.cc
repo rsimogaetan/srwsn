@@ -10,7 +10,7 @@
 #include <iostream>
 using namespace std;
 #include <stdlib.h>
-#include "../../../src/srwsn/networklayer/BloomFilter.h"
+#include "BloomFilter.h"
 
 // Print the usage format and exit with an error.
 void usage(char *arg0){

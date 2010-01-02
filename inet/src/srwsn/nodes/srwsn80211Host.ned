@@ -10,6 +10,8 @@ import inet.linklayer.ieee80211.Ieee80211NicAdhoc;
 import inet.mobility.BasicMobility;
 import inet.networklayer.common.InterfaceTable;
 
+import inet.srwsn.networklayer.BloomFilter;
+import inet.srwsn.networklayer.TableRARE;
 module srwsn80211Host
 {
     parameters:
@@ -41,6 +43,12 @@ module srwsn80211Host
         mobility: <mobilityType> like BasicMobility {
             parameters:
                 @display("p=149,307");
+        }
+        bloomFilter: BloomFilter {
+            @display("p=60,229");
+        }
+        tableRARE: TableRARE {
+            @display("p=60,307");
         }
     connections allowunconnected:
         // connections to network outside

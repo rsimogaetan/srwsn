@@ -14,6 +14,9 @@ using namespace std;
 #include <cstdio>
 #include <sstream>
 #include <cmath> 
+#include <stdint.h>  // Use [u]intN_t if you need exactly N bits. 
+
+uint64_t moi;
 
 // Print the usage format and exit with an error.
 void usage(char *arg0){
@@ -21,7 +24,7 @@ void usage(char *arg0){
 	exit(-1);
 }
 
-long convertMACToID(const char * mac);
+uint64_t convertMACToID(const char * mac);
 int getLastNumber();
 
 // The function main
@@ -29,24 +32,24 @@ int main(int argc, char ** argv)
 {
 	if((argc != 2)) usage(argv[0]);
 
-//	convertMACToID(argv[1]);
-	cout << getLastNumber() << endl;
+	convertMACToID(argv[1]);
+//	cout <<  getLastNumber() << endl;
 
 	return EXIT_SUCCESS;
 }
 
 // Convert a MAC address into a unique ID
-long convertMACToID(const char * mac){
+uint64_t convertMACToID(const char * mac){
 	char *str = strdup(mac);
 	char delims[] = "-";
 	char *hex_n = NULL;
 	hex_n = strtok( str, delims );
-	long ID = 0;
+	uint64_t ID = 0;
 
 	// Loop on each term of the mac address
 	while( hex_n != NULL ) {
 		std::stringstream convertor;
-		long dec_n = 0;
+		uint16_t dec_n = 0;
 
 		// Convertion Hexa (char*) to decimale (int)
 		cout << "Hexadecimal : "<<hex_n;

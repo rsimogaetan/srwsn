@@ -6,6 +6,10 @@
 #include "IPv4InterfaceData.h"
 #include "ARPPacket_m.h"
 #include "Ieee802Ctrl_m.h"
+#include "BloomFilter.h"
+#include "BloomFilterAccess.h"
+#include "TableRARE.h"
+#include "TableRAREAccess.h"
 
 // Each node has an unique identifier on the network
 // We ca have up to 2^16 node in this network
@@ -19,6 +23,9 @@ void SR::initialize()
     sensoID = addrCount++;
 
     ift = InterfaceTableAccess().get();
+
+    bf = BloomFilterAccess().get();
+    tr = TableRAREAccess().get();
 
     queueOutGate = gate("queueOut");
     isSink = par("isSink");
@@ -40,6 +47,8 @@ void SR::handleMessage(cMessage *msg)
 {
 	EV << "SR::handleMessage\n";
 
+	bf->toString();
+	tr->toString();
     if ((msg->isSelfMessage()))
     {
 		InterfaceEntry *ie;
@@ -98,10 +107,10 @@ void SR::handleARP(ARPPacket *msg)
 	// Check if I already know that node
 	if (mac.compare(neighborList[sensoID])==0)
 	{
+		EV << "neighborList["<<sensoID<<"] = " <<neighborList[sensoID] << " Already registered here!" << endl;
 		return;
 	}
 
-	EV << "neighborList[sensoID] = " <<neighborList[sensoID] << endl;
 	neighborList[sensoID] = mac;
 
 	MACAddress dstMACAddress = "FF-FF-FF-FF-FF-FF";
