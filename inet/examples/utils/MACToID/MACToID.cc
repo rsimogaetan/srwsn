@@ -15,6 +15,7 @@ using namespace std;
 #include <sstream>
 #include <cmath> 
 #include <stdint.h>  // Use [u]intN_t if you need exactly N bits. 
+#include <vector>
 
 uint64_t moi;
 
@@ -24,70 +25,84 @@ void usage(char *arg0){
 	exit(-1);
 }
 
-uint64_t convertMACToID(const char * mac);
-int getLastNumber();
+uint64_t convertMACToID(string str);
+int getLast2BytesToInt(string str);
 
 // The function main
 int main(int argc, char ** argv)
 {
 	if((argc != 2)) usage(argv[0]);
 
-	convertMACToID(argv[1]);
-//	cout <<  getLastNumber() << endl;
+	string str = argv[1];
+
+	convertMACToID(str);
+	getLast2BytesToInt(str);
 
 	return EXIT_SUCCESS;
 }
 
 // Convert a MAC address into a unique ID
-uint64_t convertMACToID(const char * mac){
-	char *str = strdup(mac);
-	char delims[] = "-";
-	char *hex_n = NULL;
-	hex_n = strtok( str, delims );
+uint64_t convertMACToID(string str){
+	string::iterator it;
+	unsigned int ii, cutAt;
+	vector<string> results;
 	uint64_t ID = 0;
 
-	// Loop on each term of the mac address
-	while( hex_n != NULL ) {
+	string delim= "-";
+
+	while( (cutAt = str.find_first_of(delim)) != str.npos )
+	{
+		if(cutAt > 0)
+		{
+			results.push_back(str.substr(0,cutAt));
+		}
+		str = str.substr(cutAt+1);
+	}
+	if(str.length() > 0)
+	{
+		results.push_back(str);
+	}
+	for(ii=0;ii<results.size();ii++){
 		std::stringstream convertor;
 		uint16_t dec_n = 0;
+		std::string hex_n = results[ii];
 
 		// Convertion Hexa (char*) to decimale (int)
-		cout << "Hexadecimal : "<<hex_n;
+		cout << "Hexadecimal : "<< hex_n;
 		convertor << hex_n;
 		convertor >> std::hex >> dec_n;
 		cout << "  ; Decimal : "<< dec_n ;
-
 		// If the decimal number = 0 while the hexadecimal one is not 00
-		if((dec_n == 0) && (strcmp(hex_n,"00")!=0))
+		if((dec_n == 0) && (hex_n.compare("00")!=0))
 			return -1;
 
 		ID = (ID<=0)?dec_n:(ID<<8)+dec_n;
 		cout << " ==> ID : "<< ID << endl;
-
-		hex_n = strtok( NULL, delims );
 	}
 	return ID;
 }
 
-int getLastNumber(){
 
-    string str = "26-12-ea-25-ae-fd";
-    // Create a copy a buffer
-    size_t size = str.size() + 1;
-    char * buffer = new char[ size ];
-    // copier la chaîne
-    strncpy( buffer, str.c_str(), size );
-
+int getLast2BytesToInt(string str){
 	std::stringstream convertor;
-	long dec_n = 0;
-	char * hex_n = buffer+16;
+	uint16_t dec_n ;
+	std::string hex_n;
+	unsigned int cutAt;
+
+	string delim= "-";
+
+	while( (cutAt = str.find_first_of(delim)) != str.npos )
+	{
+		str = str.substr(cutAt+1);
+	}
+	if(str.length() > 0)
+		hex_n = str;
 
 	// Convertion Hexa (char*) to decimale (int)
+	cout << "The last 2 bytes : Hexa="<<hex_n;
 	convertor << hex_n;
 	convertor >> std::hex >> dec_n;
-	
-    // free memory
-    delete [] buffer;
+	cout << "  ; Dec="<< dec_n << endl;
 
 	return dec_n;
 }

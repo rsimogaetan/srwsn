@@ -16,12 +16,12 @@ network srwsn80211
     submodules:
         host[numHosts]: srwsn80211Host {
             parameters:
-                @display("r=,,#707070;p=120,41");
+                @display("i=block/routing;is=s");
         }
         channelcontrol: ChannelControl {
             parameters:
                 playgroundSizeX = playgroundSizeX;
                 playgroundSizeY = playgroundSizeY;
                 @display("p=65,20;i=misc/sun");
-         }
+        }
 }
