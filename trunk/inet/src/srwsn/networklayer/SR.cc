@@ -1,28 +1,29 @@
 #include <omnetpp.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <stdlib.h>  // For rand
+#include <time.h>  // For rand
 
 #include "SR.h"
 #include "IPv4InterfaceData.h"
-#include "ARPPacket_m.h"
+#include "SRPacket_m.h"
 #include "Ieee802Ctrl_m.h"
 #include "BloomFilter.h"
 #include "BloomFilterAccess.h"
 #include "TableRARE.h"
 #include "TableRAREAccess.h"
+#include "InterfaceTableAccess.h"
 
-// Each node has an unique identifier on the network
-// We ca have up to 2^16 node in this network
-long SR::addrCount = 0;
 
 Define_Module(SR);
 
 void SR::initialize()
 {
-    QueueBase::initialize();
-    sensoID = addrCount++;
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 
-    ift = InterfaceTableAccess().get();
+    QueueBase::initialize();
+    myID = 0;
 
     bf = BloomFilterAccess().get();
     tr = TableRAREAccess().get();
@@ -30,139 +31,183 @@ void SR::initialize()
     queueOutGate = gate("queueOut");
     isSink = par("isSink");
 
-// If I am TIC, I send the first ping
-	if(isSink){
-		cMessage *msg = new cMessage("sendPing");
-		scheduleAt(simTime()+3.0, msg);
-	}
+    hasSentAdvertMsg = false;
+
+    // Initialize the pseudo-random number generator
+    srand( time( NULL ) );
+
+    cMessage *msg = new cMessage("SelfInitialization");
+	scheduleAt(simTime()+1.0, msg);
 }
 
 
 void SR::endService(cPacket *msg)
 {
-	EV << "SR::endService\n";
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
+}
+void SR::finish(){
+	EV <<"[SR]::"<< __FUNCTION__ <<" Sensor:" << myID <<endl;
+	dumpNeighbors();
 }
 
 void SR::handleMessage(cMessage *msg)
 {
-	EV << "SR::handleMessage\n";
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 
-	bf->toString();
-	tr->toString();
-    if ((msg->isSelfMessage()))
+	if (msg->isSelfMessage())
     {
-		InterfaceEntry *ie;
-		int ii = 0;
-		do{
-			ie = ift->getInterface(ii);
-			ii++;
-		}while(ie->isLoopback());
-
-    	MACAddress dstMACAddress = "FF-FF-FF-FF-FF-FF";
-		sendPingPong(ie, dstMACAddress);
-    }else 	if (dynamic_cast<ARPPacket *>(msg))
+		handleSelfMsg(msg);
+    }else if (dynamic_cast<SRPacket *>(msg))
     {
-        // dispatch ARP packets to ARP
-        handleARP((ARPPacket *)msg);
-    }else{
-		InterfaceEntry *ie;
-		int ii = 0;
-		do{
-			ie = ift->getInterface(ii);
-			ii++;
-		}while(ie->isLoopback());
-
-    	MACAddress dstMACAddress = "FF-FF-FF-FF-FF-FF";
-		sendPingPong(ie, dstMACAddress);
+   		handleSR((SRPacket*)msg);
+    }
+    else{
+    	// Error
     }
 }
 
-InterfaceEntry *SR::getSourceInterfaceFrom(cPacket *msg)
+void SR::handleSelfMsg(cMessage *msg)
 {
-	EV << "SR::getSourceInterfaceFrom\n";
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
+	if (strcmp(msg->getName(),"SelfInitialization")==0)
+    {
+		// Because I do not know to start at a stage different from 0 (stage 2)
+		// Here I initialize some important stuff
+		// Initialize my Interface
+		InterfaceEntry * my_ie = InterfaceTableAccess().get()->getInterface(1);
+		ASSERT(my_ie);
+		ASSERT(!my_ie->isLoopback());
 
-    cGate *g = msg->getArrivalGate();
-    return g ? ift->getInterfaceByNetworkLayerGateIndex(g->getIndex()) : NULL;
+		// Initialize my MAC Address and personal ID
+		myMACAddress = my_ie->getMacAddress();
+		myID = LastMACNumberToInt(myMACAddress.str());
+
+		// If I am the sink, I should start the simulation
+		if(isSink){
+			MACAddress BroadcastAddress ;
+			BroadcastAddress.setBroadcast();
+			sendPingPong(BroadcastAddress);
+		}
+    }else if (strcmp(msg->getName(),"InternalAlerte")==0)
+    {
+    	EV << "     An alert just occurred here" <<endl;
+    }else if (dynamic_cast<SRPacket *>(msg)){
+    	// This packet has been schedule by me to send now
+    	SRPacket * sr = (SRPacket*)msg;
+    	if(myMACAddress.compareTo(sr->getSrcMACAddress())==0){
+        	EV << "     Sending message now. " << "myMACAddress:" << myMACAddress <<endl;
+			// I am the sender of this packet
+    	    // send out
+    	    sendDirect(sr, getParentModule(), "ifOut",0);
+
+    		// change icon displayed in Tkenv
+    		cDisplayString* display_string = &getParentModule()->getParentModule()->getDisplayString();
+    		display_string->setTagArg("i", 1, "gold");
+    	}
+    }
 }
 
-void SR::handleARP(ARPPacket *msg)
+void SR::handleSR(SRPacket *msg)
 {
-    // FIXME hasBitError() check  missing!
-	EV << "SR::handleARP\n";
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 
 	// delete old control info
     delete msg->removeControlInfo();
 
-    // dispatch ARP packets to ARP and let it know the gate index it arrived on
-    InterfaceEntry *fromIE = getSourceInterfaceFrom(msg);
-    ASSERT(fromIE);
+	MACAddress srcMACAddress = msg->getSrcMACAddress();
+	int srcSensorID = msg->getId();
 
-    ARPPacket *arp_in = (ARPPacket *)msg;
-
-	MACAddress srcMACAddress = arp_in->getSrcMACAddress();
-	std::string mac = srcMACAddress.str();
-
-	sensoID = getLastMACNumber(mac);
-
+	EV << "     received message from sensor ID " << srcSensorID << endl;
 	// Check if I already know that node
-	if (mac.compare(neighborList[sensoID])==0)
+//	if (srcMACAddress.str().compare(neighborList[srcSensorID])==0)
+	if(neighborList.find(srcSensorID) != neighborList.end())
 	{
-		EV << "neighborList["<<sensoID<<"] = " <<neighborList[sensoID] << " Already registered here!" << endl;
-		return;
+		EV << "     neighborList["<<srcSensorID<<"] = " <<neighborList[srcSensorID] << " . Already registered here!" << endl;
+	}else{
+		// Here, I do not know the sender
+		// So I add it to my neighbor list
+		neighborList[srcSensorID] = srcMACAddress;
+		EV << "     New neighbor <" << srcSensorID <<","<< srcMACAddress.str() << "> added "<< endl;
+
+		// Check if I already have sent an advertisement message
+		if (hasSentAdvertMsg){
+			// He should already have received my first advertisement message
+			EV << "     I already have sent an Advertisement message" << endl;
+		}else{
+			// This should be the time to send the advertisement message
+			EV << "     Sending my first Advertisement message" << endl;
+			dumpNeighbors();
+			MACAddress BroadcastAddress ;
+			BroadcastAddress.setBroadcast();
+			sendPingPong(BroadcastAddress);
+			hasSentAdvertMsg = true;
+		}
 	}
-
-	neighborList[sensoID] = mac;
-
-	MACAddress dstMACAddress = "FF-FF-FF-FF-FF-FF";
-
-	sendPingPong(fromIE,dstMACAddress);
 }
 
-int SR::getLastMACNumber(std::string str)
-{
-    // Create a copy a buffer
-    size_t size = str.size() + 1;
-    char * buffer = new char[ size ];
-    // copier la chaîne
-    strncpy( buffer, str.c_str(), size );
 
-	std::stringstream convertor;
-	long dec_n = 0;
-	char * hex_n = buffer+16;
+void SR::sendPingPong( MACAddress dstMACAddress){
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 
-	// Convertion Hexa (char*) to decimale (int)
-	convertor << hex_n;
-	convertor >> std::hex >> dec_n;
-
-    // free memory
-    delete [] buffer;
-
-	return dec_n;
-}
-
-void SR::sendPingPong(InterfaceEntry *ie,MACAddress dstMACAddress){
-	EV << "SR::sendPingPong\n";
-
-	MACAddress myMACAddress = ie->getMacAddress();
-
-	EV << "myMACAddress:" << myMACAddress << "; dstMACAddress:" << dstMACAddress << "\n";
-
+	EV << "     myMACAddress:" << myMACAddress << "; dstMACAddress:" << dstMACAddress << endl;
     // Must be set
     ASSERT(!myMACAddress.isUnspecified());
 
     // fill out everything in ARP Request packet except dest MAC address
-    ARPPacket *arp = new ARPPacket("HelloWorld");
-    arp->setByteLength(ARP_HEADER_BYTES);
-    arp->setOpcode(ARP_REQUEST);
-    arp->setSrcMACAddress(myMACAddress);
+    SRPacket *sr = new SRPacket("HelloWorld");
+    sr->setSrcMACAddress(myMACAddress);
+    sr->setId(myID);
 
     // add control info with MAC address
     Ieee802Ctrl *controlInfo = new Ieee802Ctrl();
     controlInfo->setDest(dstMACAddress);
-    arp->setControlInfo(controlInfo);
+    sr->setControlInfo(controlInfo);
 
-    // send out
-    sendDirect(arp, getParentModule(), "ifOut",
-                                  ie->getNetworkLayerGateIndex());
+	double randomTime = (rand() % 10) + 1.0;
+    EV << "     Scheduling to send the message in "<< randomTime << " seconds." <<endl;
+    scheduleAt(simTime()+randomTime,sr);
 }
 
+// Return the last number of the MAC Address in decimal
+// i.e. 00-12-EF-32-AA-AE  will return AE = 174
+int SR::LastMACNumberToInt(std::string mac)
+{
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
+	std::stringstream convertor;
+	uint16_t dec_n ;
+	unsigned int cutAt;
+
+	std::string delim= "-";
+
+	while( (cutAt = mac.find_first_of(delim)) != mac.npos )
+	{
+		mac = mac.substr(cutAt+1);
+	}
+	if(mac.length() < 0)
+		return -1;
+
+	// Convert Hexa (string) to decimal (int)
+	convertor << mac;
+	convertor >> std::hex >> dec_n;
+
+	return (dec_n-1);
+}
+
+// Print the content of my neighbor list
+void SR::dumpNeighbors()
+{
+
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
+    EV <<"[SR] My neighbor list : ";
+	NeighborList_t::iterator it;
+
+	for (it = neighborList.begin (); it != neighborList.end (); ++it)
+	{
+		MACAddress mac= (*it).second;
+		int id = (*it).first;
+//		EV << "<"<< id <<","<< mac << ">";
+		EV << "<"<< id <<">";
+	}
+	EV <<endl;
+
+}

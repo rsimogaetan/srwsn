@@ -2,48 +2,43 @@
 #define __INET_SR_H
 
 #include "QueueBase.h"
-#include "InterfaceTableAccess.h"
-#include "IPControlInfo.h"
 #include "BloomFilter.h"
 #include "TableRARE.h"
+#include "SRPacket_m.h"
+#include "InterfaceEntry.h"
+#include <iostream>
 
-class ARPPacket;
-//class SRNetDiscovery;
+typedef std::map<int, MACAddress> NeighborList_t;
 
 /**
  * Implements the SR protocol.
  */
+
 class INET_API SR : public QueueBase
 {
   protected:
-	IInterfaceTable *ift;
 	BloomFilter *bf;
 	TableRARE *tr;
+	MACAddress myMACAddress;
 
     cGate *queueOutGate; // the most frequently used output gate
     bool isSink;   // Is this node the sink ?
 
-    long sensoID;  // The unique identifier of a node on the whole network
+    long myID;  // The unique identifier of a node on the whole network
 
-    /** @brief global counter for generating unique MAC extended address */
-    static long addrCount;
-
-    int getLastMACNumber(std::string str);
+    int LastMACNumberToInt(std::string str); // Return the last MAC number in decimal
 
 	/**
 	* @name Container used to list my neighbors' mac addresses
 	*/
-	typedef std::map<long, std::string > NeighborList;
-	NeighborList neighborList;
+	NeighborList_t neighborList;
 
+	bool hasSentAdvertMsg;  // For the advertisement message
   protected:
-    // utility: look up interface from getArrivalGate()
-    virtual InterfaceEntry *getSourceInterfaceFrom(cPacket *msg);
-
     /**
-     * Handle incoming ARP packets by sending them over "queueOut" to ARP.
+     * Handle incoming SR packets by sending them over "queueOut" to ARP.
      */
-    virtual void handleARP(ARPPacket *msg);
+    virtual void handleSR(SRPacket *msg);
 
   public:
     SR() {}
@@ -55,12 +50,15 @@ class INET_API SR : public QueueBase
     virtual void initialize();
 
     /**
-     * Processing of IP datagrams. Called when a datagram reaches the front
+     * Processing of SR datagrams. Called when a datagram reaches the front
      * of the queue.
      */
     virtual void endService(cPacket *msg);
+    virtual void finish();
     virtual void handleMessage(cMessage *msg);
-    virtual void sendPingPong(InterfaceEntry *ie,MACAddress dstMACAddress);
+    virtual void handleSelfMsg(cMessage *msg);
+    virtual void sendPingPong(MACAddress dstMACAddress);
+    virtual void dumpNeighbors();
 };
 
 #endif
