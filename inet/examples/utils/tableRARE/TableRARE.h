@@ -1,14 +1,27 @@
 #ifndef __TABLERARE_H
 #define __TABLERARE_H
 
-class TableRARE {
+#include <vector>
+
+using namespace std;
+
+class TableRARE //:  public cSimpleModule
+{
 public:
-	TableRARE(const char * name);
+	TableRARE(int Neighboor);
 	~TableRARE();
 	void toString();
+
+	std::vector < std::vector<int> > table;
+	void UpdateTable(int QueryId,int PeerId);
+	int LearningPeerSelection(int QueryId);
+    int QueryRelaxation(int QueryId);
+	virtual void initialize();
 private:
-	char * my_name;
+	int maxPeers;
+	int maxQueries;
+	int maxTypes;
+	bool ready;
 };
 
 #endif
-

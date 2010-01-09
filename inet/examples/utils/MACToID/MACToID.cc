@@ -17,7 +17,7 @@ using namespace std;
 #include <stdint.h>  // Use [u]intN_t if you need exactly N bits. 
 #include <vector>
 
-uint64_t moi;
+uint8_t moi;
 
 // Print the usage format and exit with an error.
 void usage(char *arg0){
@@ -31,13 +31,20 @@ int getLast2BytesToInt(string str);
 // The function main
 int main(int argc, char ** argv)
 {
+uint16_t moi = 65534;
+cout << "moi : "<< moi <<endl;
+moi = (moi << 1)+6;
+cout << "moi : "<<moi<<endl;
+
+/*
 	if((argc != 2)) usage(argv[0]);
+
 
 	string str = argv[1];
 
 	convertMACToID(str);
 	getLast2BytesToInt(str);
-
+*/
 	return EXIT_SUCCESS;
 }
 
