@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.0 from SRPacket.msg.
+// Generated file, do not edit! Created by opp_msgc 4.0 from srwsn/networklayer/SRPacket.msg.
 //
 
 #ifndef _SRPACKET_M_H_
@@ -16,6 +16,7 @@
 // cplusplus {{ ... }} section:
 
 #include "MACAddress.h"
+#include <stdint.h>  
 
 
 #define SR_HEADER_BYTES   28
@@ -24,34 +25,32 @@
 
 
 /**
- * Enum generated from <tt>SRPacket.msg</tt> by opp_msgc.
+ * Enum generated from <tt>srwsn/networklayer/SRPacket.msg</tt> by opp_msgc.
  * <pre>
  * enum SROpcode
  * {
  * 
  *     SR_REQUEST = 1;      
  *     SR_REPLY = 2;        
- *     SR_RARP_REQUEST = 3; 
- *     SR_RARP_REPLY = 4;   
+ *     SR_INFO = 3;        
  * }
  * </pre>
  */
 enum SROpcode {
     SR_REQUEST = 1,
     SR_REPLY = 2,
-    SR_RARP_REQUEST = 3,
-    SR_RARP_REPLY = 4
+    SR_INFO = 3
 };
 
 /**
- * Class generated from <tt>SRPacket.msg</tt> by opp_msgc.
+ * Class generated from <tt>srwsn/networklayer/SRPacket.msg</tt> by opp_msgc.
  * <pre>
  * packet SRPacket
  * {
  *     int opcode enum(SROpcode);
  *     MACAddress srcMACAddress;
  *     MACAddress destMACAddress;
- *     int Id;
+ *     uint16_t Id;
  * }
  * </pre>
  */
@@ -61,7 +60,7 @@ class SRPacket : public cPacket
     int opcode_var;
     MACAddress srcMACAddress_var;
     MACAddress destMACAddress_var;
-    int Id_var;
+    uint16_t Id_var;
 
     // protected and unimplemented operator==(), to prevent accidental usage
     bool operator==(const SRPacket&);
@@ -84,8 +83,8 @@ class SRPacket : public cPacket
     virtual MACAddress& getDestMACAddress();
     virtual const MACAddress& getDestMACAddress() const {return const_cast<SRPacket*>(this)->getDestMACAddress();}
     virtual void setDestMACAddress(const MACAddress& destMACAddress_var);
-    virtual int getId() const;
-    virtual void setId(int Id_var);
+    virtual uint16_t getId() const;
+    virtual void setId(uint16_t Id_var);
 };
 
 inline void doPacking(cCommBuffer *b, SRPacket& obj) {obj.parsimPack(b);}

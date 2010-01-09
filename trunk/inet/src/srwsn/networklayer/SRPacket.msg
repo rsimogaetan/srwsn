@@ -20,23 +20,22 @@ class noncobject MACAddress;
 
 cplusplus {{
 #include "MACAddress.h"
+#include <stdint.h>  // Use [u]intN_t if you need exactly N bits.
 
 // ARP header length for IPv4 (4-byte addresses) and 802 LANs (6-byte MAC addrs)
 #define SR_HEADER_BYTES   28
 }}
 
 
-
 //
-// The list of practically important ARP opcodes
+// The list of practically important SR opcodes
 //
 enum SROpcode
 {
 
-    SR_REQUEST = 1;      // Request. RFC 826
-    SR_REPLY = 2;        // Reply. RFC 826, RFC 1868
-    SR_RARP_REQUEST = 3; // Request Reverse. RFC 903
-    SR_RARP_REPLY = 4;   // Reply Reverse. RFC 903
+    SR_REQUEST = 1;      // Request.
+    SR_REPLY = 2;        // Reply.
+    SR_INFO = 3;        // Info message
 }
 
 
@@ -55,7 +54,7 @@ packet SRPacket
     int opcode enum(SROpcode);
     MACAddress srcMACAddress;
     MACAddress destMACAddress;
-    int Id;
+    uint16_t Id;
 }
 
 

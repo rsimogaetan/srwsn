@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.0 from SRPacket.msg.
+// Generated file, do not edit! Created by opp_msgc 4.0 from srwsn/networklayer/SRPacket.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -35,8 +35,7 @@ EXECUTE_ON_STARTUP(
     if (!e) enums.getInstance()->add(e = new cEnum("SROpcode"));
     e->insert(SR_REQUEST, "SR_REQUEST");
     e->insert(SR_REPLY, "SR_REPLY");
-    e->insert(SR_RARP_REQUEST, "SR_RARP_REQUEST");
-    e->insert(SR_RARP_REPLY, "SR_RARP_REPLY");
+    e->insert(SR_INFO, "SR_INFO");
 );
 
 Register_Class(SRPacket);
@@ -116,12 +115,12 @@ void SRPacket::setDestMACAddress(const MACAddress& destMACAddress_var)
     this->destMACAddress_var = destMACAddress_var;
 }
 
-int SRPacket::getId() const
+uint16_t SRPacket::getId() const
 {
     return Id_var;
 }
 
-void SRPacket::setId(int Id_var)
+void SRPacket::setId(uint16_t Id_var)
 {
     this->Id_var = Id_var;
 }
@@ -221,7 +220,7 @@ const char *SRPacketDescriptor::getFieldTypeString(void *object, int field) cons
         case 0: return "int";
         case 1: return "MACAddress";
         case 2: return "MACAddress";
-        case 3: return "int";
+        case 3: return "uint16_t";
         default: return NULL;
     }
 }
@@ -269,7 +268,7 @@ bool SRPacketDescriptor::getFieldAsString(void *object, int field, int i, char *
         case 0: long2string(pp->getOpcode(),resultbuf,bufsize); return true;
         case 1: {std::stringstream out; out << pp->getSrcMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
         case 2: {std::stringstream out; out << pp->getDestMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
-        case 3: long2string(pp->getId(),resultbuf,bufsize); return true;
+        case 3: ulong2string(pp->getId(),resultbuf,bufsize); return true;
         default: return false;
     }
 }
@@ -285,7 +284,7 @@ bool SRPacketDescriptor::setFieldAsString(void *object, int field, int i, const 
     SRPacket *pp = (SRPacket *)object; (void)pp;
     switch (field) {
         case 0: pp->setOpcode(string2long(value)); return true;
-        case 3: pp->setId(string2long(value)); return true;
+        case 3: pp->setId(string2ulong(value)); return true;
         default: return false;
     }
 }
