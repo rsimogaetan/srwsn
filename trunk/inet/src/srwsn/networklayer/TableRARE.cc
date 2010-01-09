@@ -3,7 +3,6 @@
 using namespace std;
 #include <iostream>
 #include <vector>
-#include "TableRARE.h"
 #include <stdlib.h>  // For rand
 #include <time.h>  // For rand
 
@@ -11,11 +10,17 @@ using namespace std;
 Define_Module(TableRARE);
 
 // Paramètres
-const int MAXQUERIES=3;
-const int MAXTYPES=3;
+const int MAXQUERIES=6;  // Temperature, Pression, Son, Lumiere, Humidite, Puit
+const int MAXTYPES=4;    // Relation math, Feu, Intru, Pluie
 
 // On definit la table des requetes
-int Queries[MAXQUERIES][MAXTYPES]={{1,0,1},{1,0,0},{0,1,1}}; //A definir
+int Queries[MAXQUERIES][MAXTYPES]={{1,1,0,0},
+								   {1,0,0,0},
+								   {0,0,1,1},
+								   {0,1,1,0},
+								   {0,0,0,1},
+								   {0,0,0,0}}; //A definir
+
 
 TableRARE::TableRARE(int Neighbors) {
 
@@ -24,7 +29,6 @@ TableRARE::TableRARE(int Neighbors) {
 	maxTypes=MAXTYPES;
 
 	// On definit la table d apprentissage
-	//int table[maxQueries][maxPeers];
 	table.resize(maxPeers);
 	for(int i=0; i<maxQueries; i++){
 		table[i].resize(maxQueries);
@@ -32,6 +36,9 @@ TableRARE::TableRARE(int Neighbors) {
 			table[i][j]=0;
 			}
 	}
+
+	// On initialise l'id à 0
+	int IDlocal=0;
 
 	srand(time(NULL));
 
@@ -43,8 +50,25 @@ TableRARE::~TableRARE() {
 
 void TableRARE::initialize()
 {
-	ready = par("ready");
-	maxEntry = par("maxEntry");
+	/*ready = par("ready");
+	maxPeers = par("maxPeers");
+*/
+}
+
+
+// Une methode qui prend en entree l'ID dans le reseau et qui donne en sortie un ID logique (local)
+int TableRARE::IDnettoIDlocal(int IDnet){
+
+	// On alloue l espace a la nouvelle entree
+	IDtable.resize(IDlocal+1);
+
+	// On attribue un id local a l'id du reseau
+	IDtable[IDlocal]=IDnet;
+
+	// On passe a l id local libre suivant
+	IDlocal++;
+
+	return IDlocal-1;
 }
 
 void TableRARE::UpdateTable(int QueryId,int PeerId)
@@ -104,45 +128,16 @@ int TableRARE::LearningPeerSelection(int QueryId){
 	// Sinon on passe a la selection aleatoire
 	if(IdPeer == -1) {
 			IdPeer = (int)((double)rand() / ((double)RAND_MAX + 1) * 3);
-			cout << "--> On passe a la selection aleatoire \n";
+			printf("--> On passe a la selection aleatoire \n");
 		}
 
 	return IdPeer;
 }
 
-
-/*
-//On définit une méthode qui renvoit une liste de n pairs pertinents
-int* TableRare::LearningPeerSelection(int QueryId, int n){
-
-	int *IdPeers;
-
-	if (n<maxEntry) {
-		int i=1, IdPeer;
-		int Max = table[QueryId][0];
-		vector<int> temp;
-		temp.resize(maxEntry);
-
-		// On copie le tableau a l indice QueryId
-		for(int j = 0; j < 0; j++) {
-			temp.at(j)=table[QueryId][0];
-		}
-
-
-	}
-	else
-	{
-		// On renvoit un tableau vide
-		IdPeers = NULL;
-	}
-
-
-
-	return IdPeer;
-}
-*/
 
 void TableRARE::toString(){
-	EV << "[TableRARE] Hello, I am ready ? " << ready
-	<<" ; max entry :" << maxEntry << endl;
+	/*EV << "[TableRARE] Hello, I am ready ? " << ready
+	<<" ; max peers :" << maxPeers << endl;
+	*/
 }
+
