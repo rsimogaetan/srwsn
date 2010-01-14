@@ -1,21 +1,25 @@
 #include <omnetpp.h>
+#include "BloomFilter.h"
+
 #include <iostream>
 #include <cstring>
-#include "BloomFilter.h"
 #include <cstdlib>
 #include <climits>
 #include <cstdarg>
 #include <exception>
-using namespace std;
 
-#define SETBIT(a, n) (a[n/CHAR_BIT] |= (1<<(n%CHAR_BIT)))
-#define GETBIT(a, n) (a[n/CHAR_BIT] & (1<<(n%CHAR_BIT)))
+using namespace std;
 
 
 // The module class needs to be registered with OMNeT++
 Define_Module(BloomFilter);
 
-// Another Constructor
+
+#define SETBIT(a, n) (a[n/CHAR_BIT] |= (1<<(n%CHAR_BIT)))
+#define GETBIT(a, n) (a[n/CHAR_BIT] & (1<<(n%CHAR_BIT)))
+
+
+// The Constructor
 BloomFilter::BloomFilter(size_t size, size_t nfuncs, ...) {
 
 
@@ -57,42 +61,13 @@ BloomFilter::BloomFilter(size_t size, size_t nfuncs, ...) {
 
 // The Destructor
 BloomFilter::~BloomFilter() {
-//	delete(this->a);
-//	  delete(this->funcs);
-//	  delete(this);
+	delete(this->a);
+	  delete(this->funcs);
+	  delete(this);
 }
-
-int BloomFilter::Add(const char *s)
-{
-  size_t n;
-
-  for(n=0; n<this->nfuncs; ++n) {
-    SETBIT(this->a, this->funcs[n](s)%this->asize);
-  }
-
-  return 0;
-}
-
-int BloomFilter::Check(const char *s)
-{
-  size_t n;
-
-  for(n=0; n< this->nfuncs; ++n) {
-    if(!(GETBIT(this->a, this->funcs[n](s)%this->asize))) return 0;
-  }
-
-  return 1;
-}
-
-void BloomFilter::initialize()
-{
-	ready = par("ready");
-	maxEntry = par("maxEntry");
-}
-
 
 //Print information about this object
 void BloomFilter::toString(){
-	EV << "[BloomFilter] Hello, I am ready ? " << ready
-	<<" ; max entry :" << maxEntry << endl;
+	/*EV << "[BloomFilter] Hello, I am ready ? " << ready
+	<<" ; max entry :" << maxEntry << endl;*/
 }

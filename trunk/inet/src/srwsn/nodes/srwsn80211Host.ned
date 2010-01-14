@@ -12,6 +12,7 @@ import inet.networklayer.common.InterfaceTable;
 
 import inet.srwsn.networklayer.BloomFilter;
 import inet.srwsn.networklayer.TableRARE;
+import inet.srwsn.networklayer.BloomTable;
 module srwsn80211Host
 {
     parameters:
@@ -48,6 +49,9 @@ module srwsn80211Host
             @display("p=60,229");
         }
         tableRARE: TableRARE {
+            @display("p=60,388");
+        }
+        bloomTable: BloomTable {
             @display("p=60,307");
         }
     connections allowunconnected:
