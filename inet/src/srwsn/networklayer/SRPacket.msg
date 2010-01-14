@@ -17,14 +17,17 @@
 
 
 class noncobject MACAddress;
+//class noncobject BloomFilter;
 
 cplusplus {{
 #include "MACAddress.h"
 #include <stdint.h>  // Use [u]intN_t if you need exactly N bits.
+//#include "BloomFilter.h"
 
 // ARP header length for IPv4 (4-byte addresses) and 802 LANs (6-byte MAC addrs)
 #define SR_HEADER_BYTES   28
 }}
+
 
 
 //
@@ -36,6 +39,7 @@ enum SROpcode
     SR_REQUEST = 1;      // Request.
     SR_REPLY = 2;        // Reply.
     SR_INFO = 3;        // Info message
+    SR_ALERT = 4;		// Alert paquet
 }
 
 
@@ -55,6 +59,9 @@ packet SRPacket
     MACAddress srcMACAddress;
     MACAddress destMACAddress;
     uint16_t Id;
+    bool amIAlertGenerator;
+    uint16_t alertTimeStamp;
+//    BloomFilter bloom;
 }
 
 

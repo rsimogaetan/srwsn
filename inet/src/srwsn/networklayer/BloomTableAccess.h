@@ -11,10 +11,11 @@
 /**
  * Gives access to the BloomTable.
  */
-/*class INET_API BloomTableAccess : public ModuleAccess<BloomTable>
+class INET_API BloomTableAccess : public ModuleAccess<BloomTable>
 {
     public:
     	BloomTableAccess() : ModuleAccess<BloomTable>("bloomTable") {}
 };
-*/
+
 #endif
+

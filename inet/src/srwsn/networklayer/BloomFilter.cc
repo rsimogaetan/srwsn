@@ -11,10 +11,6 @@
 using namespace std;
 
 
-// The module class needs to be registered with OMNeT++
-Define_Module(BloomFilter);
-
-
 #define SETBIT(a, n) (a[n/CHAR_BIT] |= (1<<(n%CHAR_BIT)))
 #define GETBIT(a, n) (a[n/CHAR_BIT] & (1<<(n%CHAR_BIT)))
 
@@ -61,13 +57,20 @@ BloomFilter::BloomFilter(size_t size, size_t nfuncs, ...) {
 
 // The Destructor
 BloomFilter::~BloomFilter() {
+	/*
 	delete(this->a);
 	  delete(this->funcs);
 	  delete(this);
+	  */
 }
+
+
+int BloomFilter::Add(const char *s){return 0;}
+int BloomFilter::Check(const char *s){return 0;}
 
 //Print information about this object
 void BloomFilter::toString(){
 	/*EV << "[BloomFilter] Hello, I am ready ? " << ready
 	<<" ; max entry :" << maxEntry << endl;*/
 }
+
