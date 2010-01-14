@@ -84,18 +84,32 @@ int BloomTable::GetIDnet (int IDlocal){
 
 // Fonction qui permet de retourner le noeud VOISIN DIRECT qui peut repondre a la requete
 // Renvoie 0 si le capteur lui meme peut répondre à la requete
-int BloomTable::Get(int QueryId){
-
+// La variable Source permet d'indiquer si le capteur est la source du message
+int BloomTable::Get(int QueryId, bool Source)
+{
 	int PeerIdlocal=-1;
 
 	// On transforme la requete en chaine de caractere
 	const char * Query = QueryTranslation[QueryId].c_str();
 
-	// On regarde d'abord si le capteur personnel peut répondre à la requête
-	if (BloomPerso->Check(Query)) {
-		PeerIdlocal = 0;   // J'ai la requete je peux y repondre
+	// On regarde d'abord si le capteur n'est pas la source du message
+	if (!Source) {
+		// Si le capteur peut y repondre directement
+		if (BloomPerso->Check(Query)) {
+			PeerIdlocal = 0;   // J'ai la reponse a la requete je peux y repondre
+		}
+		else {
+				// On parcourt le tableau et on cherche le premier pair qui peut repondre DIRECTEMENT a la requete
+				for (unsigned int i=0; i<NeighborsTable.size();i++){
+					if (NeighborsTable[i]->Check(Query))  {
+						PeerIdlocal = i+1;     // En effet car le 0 représente le noeud lui même
+						break;
+					}
+				}
+			}
 	}
-	// Sinon
+
+	// Sinon on est la source et dans ce cas il n'est pas nécessaire de verifier si on peut y repondre
 	else {
 		// On parcourt le tableau et on cherche le premier pair qui peut repondre DIRECTEMENT a la requete
 		for (unsigned int i=0; i<NeighborsTable.size();i++){
