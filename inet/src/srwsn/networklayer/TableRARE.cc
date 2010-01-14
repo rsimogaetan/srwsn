@@ -51,9 +51,8 @@ TableRARE::~TableRARE() {
 
 void TableRARE::initialize()
 {
-	/*ready = par("ready");
-	maxPeers = par("maxPeers");
-*/
+/*	ready = par("ready");
+	maxPeers = par("maxPeers");*/
 }
 
 
@@ -137,8 +136,8 @@ int TableRARE::LearningPeerSelection(int QueryId){
 
 
 void TableRARE::toString(){
-	/*EV << "[TableRARE] Hello, I am ready ? " << ready
+	EV << "[TableRARE] Hello, I am ready ? " << ready
 	<<" ; max peers :" << maxPeers << endl;
-	*/
+
 }
 
