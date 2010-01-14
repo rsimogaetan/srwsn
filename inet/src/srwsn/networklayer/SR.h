@@ -40,7 +40,7 @@ class INET_API SR : public QueueBase
 
 	bool hasSentAdvertMsg;  // For the advertisement message
   public:
-    SR() {}
+    SR() {};
 
   protected:
     /**
