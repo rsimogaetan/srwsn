@@ -10,7 +10,7 @@ using namespace std;
 
 // Print the usage format and exit with an error.
 void usage(char *arg0){
-	cout << "Usage :  " << arg0 << "mac sink_distance area" <<endl;
+	cout << "Usage :  " << arg0 << " mac sink_distance area" <<endl;
 	exit(-1);
 }
 

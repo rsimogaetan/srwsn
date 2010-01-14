@@ -12,6 +12,7 @@
 #include "Ieee802Ctrl_m.h"
 #include "BloomFilterAccess.h"
 #include "TableRAREAccess.h"
+#include "BloomTableAccess.h"
 #include "InterfaceTableAccess.h"
 
 Define_Module(SR);

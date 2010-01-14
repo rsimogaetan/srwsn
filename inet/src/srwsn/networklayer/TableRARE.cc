@@ -1,10 +1,11 @@
 #include <omnetpp.h>
 #include "TableRARE.h"
-using namespace std;
 #include <iostream>
 #include <vector>
 #include <stdlib.h>  // For rand
 #include <time.h>  // For rand
+using namespace std;
+
 
 // The module class needs to be registered with OMNeT++
 Define_Module(TableRARE);
@@ -38,7 +39,7 @@ TableRARE::TableRARE(int Neighbors) {
 	}
 
 	// On initialise l'id à 0
-	int IDlocal=0;
+	IDlocal=0;
 
 	srand(time(NULL));
 
