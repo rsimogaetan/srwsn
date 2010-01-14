@@ -19,6 +19,7 @@
 #include <stdint.h>  
 
 
+
 #define SR_HEADER_BYTES   28
 // end cplusplus
 
@@ -33,13 +34,15 @@
  *     SR_REQUEST = 1;      
  *     SR_REPLY = 2;        
  *     SR_INFO = 3;        
+ *     SR_ALERT = 4;		
  * }
  * </pre>
  */
 enum SROpcode {
     SR_REQUEST = 1,
     SR_REPLY = 2,
-    SR_INFO = 3
+    SR_INFO = 3,
+    SR_ALERT = 4
 };
 
 /**
@@ -51,6 +54,9 @@ enum SROpcode {
  *     MACAddress srcMACAddress;
  *     MACAddress destMACAddress;
  *     uint16_t Id;
+ *     bool amIAlertGenerator;
+ *     uint16_t alertTimeStamp;
+ * 
  * }
  * </pre>
  */
@@ -61,6 +67,8 @@ class SRPacket : public cPacket
     MACAddress srcMACAddress_var;
     MACAddress destMACAddress_var;
     uint16_t Id_var;
+    bool amIAlertGenerator_var;
+    uint16_t alertTimeStamp_var;
 
     // protected and unimplemented operator==(), to prevent accidental usage
     bool operator==(const SRPacket&);
@@ -85,6 +93,10 @@ class SRPacket : public cPacket
     virtual void setDestMACAddress(const MACAddress& destMACAddress_var);
     virtual uint16_t getId() const;
     virtual void setId(uint16_t Id_var);
+    virtual bool getAmIAlertGenerator() const;
+    virtual void setAmIAlertGenerator(bool amIAlertGenerator_var);
+    virtual uint16_t getAlertTimeStamp() const;
+    virtual void setAlertTimeStamp(uint16_t alertTimeStamp_var);
 };
 
 inline void doPacking(cCommBuffer *b, SRPacket& obj) {obj.parsimPack(b);}

@@ -36,6 +36,7 @@ EXECUTE_ON_STARTUP(
     e->insert(SR_REQUEST, "SR_REQUEST");
     e->insert(SR_REPLY, "SR_REPLY");
     e->insert(SR_INFO, "SR_INFO");
+    e->insert(SR_ALERT, "SR_ALERT");
 );
 
 Register_Class(SRPacket);
@@ -44,6 +45,8 @@ SRPacket::SRPacket(const char *name, int kind) : cPacket(name,kind)
 {
     this->opcode_var = 0;
     this->Id_var = 0;
+    this->amIAlertGenerator_var = 0;
+    this->alertTimeStamp_var = 0;
 }
 
 SRPacket::SRPacket(const SRPacket& other) : cPacket()
@@ -64,6 +67,8 @@ SRPacket& SRPacket::operator=(const SRPacket& other)
     this->srcMACAddress_var = other.srcMACAddress_var;
     this->destMACAddress_var = other.destMACAddress_var;
     this->Id_var = other.Id_var;
+    this->amIAlertGenerator_var = other.amIAlertGenerator_var;
+    this->alertTimeStamp_var = other.alertTimeStamp_var;
     return *this;
 }
 
@@ -74,6 +79,8 @@ void SRPacket::parsimPack(cCommBuffer *b)
     doPacking(b,this->srcMACAddress_var);
     doPacking(b,this->destMACAddress_var);
     doPacking(b,this->Id_var);
+    doPacking(b,this->amIAlertGenerator_var);
+    doPacking(b,this->alertTimeStamp_var);
 }
 
 void SRPacket::parsimUnpack(cCommBuffer *b)
@@ -83,6 +90,8 @@ void SRPacket::parsimUnpack(cCommBuffer *b)
     doUnpacking(b,this->srcMACAddress_var);
     doUnpacking(b,this->destMACAddress_var);
     doUnpacking(b,this->Id_var);
+    doUnpacking(b,this->amIAlertGenerator_var);
+    doUnpacking(b,this->alertTimeStamp_var);
 }
 
 int SRPacket::getOpcode() const
@@ -123,6 +132,26 @@ uint16_t SRPacket::getId() const
 void SRPacket::setId(uint16_t Id_var)
 {
     this->Id_var = Id_var;
+}
+
+bool SRPacket::getAmIAlertGenerator() const
+{
+    return amIAlertGenerator_var;
+}
+
+void SRPacket::setAmIAlertGenerator(bool amIAlertGenerator_var)
+{
+    this->amIAlertGenerator_var = amIAlertGenerator_var;
+}
+
+uint16_t SRPacket::getAlertTimeStamp() const
+{
+    return alertTimeStamp_var;
+}
+
+void SRPacket::setAlertTimeStamp(uint16_t alertTimeStamp_var)
+{
+    this->alertTimeStamp_var = alertTimeStamp_var;
 }
 
 class SRPacketDescriptor : public cClassDescriptor
@@ -171,7 +200,7 @@ const char *SRPacketDescriptor::getProperty(const char *propertyname) const
 int SRPacketDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 4+basedesc->getFieldCount(object) : 4;
+    return basedesc ? 6+basedesc->getFieldCount(object) : 6;
 }
 
 unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -187,6 +216,8 @@ unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) cons
         case 1: return FD_ISCOMPOUND;
         case 2: return FD_ISCOMPOUND;
         case 3: return FD_ISEDITABLE;
+        case 4: return FD_ISEDITABLE;
+        case 5: return FD_ISEDITABLE;
         default: return 0;
     }
 }
@@ -204,6 +235,8 @@ const char *SRPacketDescriptor::getFieldName(void *object, int field) const
         case 1: return "srcMACAddress";
         case 2: return "destMACAddress";
         case 3: return "Id";
+        case 4: return "amIAlertGenerator";
+        case 5: return "alertTimeStamp";
         default: return NULL;
     }
 }
@@ -221,6 +254,8 @@ const char *SRPacketDescriptor::getFieldTypeString(void *object, int field) cons
         case 1: return "MACAddress";
         case 2: return "MACAddress";
         case 3: return "uint16_t";
+        case 4: return "bool";
+        case 5: return "uint16_t";
         default: return NULL;
     }
 }
@@ -269,6 +304,8 @@ bool SRPacketDescriptor::getFieldAsString(void *object, int field, int i, char *
         case 1: {std::stringstream out; out << pp->getSrcMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
         case 2: {std::stringstream out; out << pp->getDestMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
         case 3: ulong2string(pp->getId(),resultbuf,bufsize); return true;
+        case 4: bool2string(pp->getAmIAlertGenerator(),resultbuf,bufsize); return true;
+        case 5: ulong2string(pp->getAlertTimeStamp(),resultbuf,bufsize); return true;
         default: return false;
     }
 }
@@ -285,6 +322,8 @@ bool SRPacketDescriptor::setFieldAsString(void *object, int field, int i, const 
     switch (field) {
         case 0: pp->setOpcode(string2long(value)); return true;
         case 3: pp->setId(string2ulong(value)); return true;
+        case 4: pp->setAmIAlertGenerator(string2bool(value)); return true;
+        case 5: pp->setAlertTimeStamp(string2ulong(value)); return true;
         default: return false;
     }
 }

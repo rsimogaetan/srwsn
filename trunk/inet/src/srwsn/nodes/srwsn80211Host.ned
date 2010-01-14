@@ -10,7 +10,6 @@ import inet.linklayer.ieee80211.Ieee80211NicAdhoc;
 import inet.mobility.BasicMobility;
 import inet.networklayer.common.InterfaceTable;
 
-import inet.srwsn.networklayer.BloomFilter;
 import inet.srwsn.networklayer.TableRARE;
 import inet.srwsn.networklayer.BloomTable;
 module srwsn80211Host
@@ -44,9 +43,6 @@ module srwsn80211Host
         mobility: <mobilityType> like BasicMobility {
             parameters:
                 @display("p=149,307");
-        }
-        bloomFilter: BloomFilter {
-            @display("p=60,229");
         }
         tableRARE: TableRARE {
             @display("p=60,388");

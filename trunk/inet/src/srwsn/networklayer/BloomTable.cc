@@ -1,25 +1,12 @@
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with this program.  If not, see http://www.gnu.org/licenses/.
-//
-
-#include "BloomTable.h"
-#include "BloomFilter.h"
 #include <omnetpp.h>
+#include "BloomTable.h"
 #include <cstring>
+
 
 using namespace std;
 
+
+// The module class needs to be registered with OMNeT++
 Define_Module(BloomTable);
 
 
@@ -42,7 +29,8 @@ unsigned int sdbm_hash(const char *key)
 //*********************************************************
 
 
-BloomTable::BloomTable(int Neighbors) { // Le nombre de voisins DIRECT est a mettre en paramètre
+// The Destructor
+BloomTable::BloomTable(int Neighbors) {// Le nombre de voisins DIRECT est a mettre en paramètre
 
 	// On instancie son propre filtre de bloom
 	BloomPerso = new BloomFilter((size_t) Neighbors, 2, sax_hash, sdbm_hash);
@@ -64,15 +52,20 @@ BloomTable::BloomTable(int Neighbors) { // Le nombre de voisins DIRECT est a met
 	QueryTranslation.push_back(puit);
 }
 
-
-
-void BloomTable::initialize()
-{
+// The Destructor
+BloomTable::~BloomTable() {
 	// TODO - Generated method body
 }
 
+void BloomTable::initialize()
+{
+}
+
+void BloomTable::handleMessage(cMessage *msg){};
+
+
 // Conversion IDnet -> IDlocal
-int BloomTable::GetIDlocal (int IDnet) {
+int BloomTable::GetIDlocal (int IDnet){
 
 	// On alloue une correspondance supplementaire
 	TableID[IDlocalmax]=IDnet;
@@ -82,31 +75,17 @@ int BloomTable::GetIDlocal (int IDnet) {
 	return IDlocalmax-1;
 }
 
+
 // Conversion IDlocal -> IDnet
-int BloomTable::GetIDnet (int IDlocal) {
-
+int BloomTable::GetIDnet (int IDlocal){
 	return TableID[IDlocal];
-}
-
-// Fonction qui permet d'ajouter un filtre dans la table de Bloom
-void BloomTable::AddFilter(BloomFilter* BloomNeighbor, int IDnet)
-{
-	// On ajoute le propietaire du filtre dans le tableau de correspondance
-	int IDlocal = GetIDlocal(IDnet);
-
-	// On alloue la mémoire pour stocker un nouveau filtre (pointeur)
-	// Il faut noter que la taille de ce vecteur vaut IDlocalmax (un fitlre de bloom par id)
-	NeighborsTable.resize(IDlocal+1);
-
-	// On insere le nouveau filtre dans le tableau
-	NeighborsTable[IDlocal] = BloomNeighbor;
 }
 
 
 // Fonction qui permet de retourner le noeud VOISIN DIRECT qui peut repondre a la requete
 // Renvoie 0 si le capteur lui meme peut répondre à la requete
-int BloomTable::Get(int QueryId)
-{
+int BloomTable::Get(int QueryId){
+
 	int PeerIdlocal=-1;
 
 	// On transforme la requete en chaine de caractere
@@ -133,6 +112,22 @@ int BloomTable::Get(int QueryId)
 	return PeerIDnet;
 }
 
+
+// Fonction qui permet d'ajouter un filtre dans la table de Bloom
+void BloomTable::AddFilter(BloomFilter* BloomNeighbor, int IDnet){
+	// On ajoute le propietaire du filtre dans le tableau de correspondance
+	int IDlocal = GetIDlocal(IDnet);
+
+	// On alloue la mémoire pour stocker un nouveau filtre (pointeur)
+	// Il faut noter que la taille de ce vecteur vaut IDlocalmax (un fitlre de bloom par id)
+	NeighborsTable.resize(IDlocal+1);
+
+	// On insere le nouveau filtre dans le tableau
+	NeighborsTable[IDlocal] = BloomNeighbor;
+
+}
+
+
 //Print information about this object
 void BloomTable::toString(){
 	/*
@@ -140,5 +135,3 @@ void BloomTable::toString(){
 	<<" ; max entry :" << IDlocalmax << endl;
 	*/
 }
-
-

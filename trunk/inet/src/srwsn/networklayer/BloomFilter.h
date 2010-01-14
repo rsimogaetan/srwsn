@@ -7,22 +7,26 @@
 
 typedef unsigned int (*hashfunc_t)(const char *);
 
-class BloomFilter :  public cSimpleModule
+class BloomFilter
 {
 
 public:
 
-	BloomFilter();
+	BloomFilter(){};
 	BloomFilter(size_t size, size_t nfuncs, ...);  // The Constructor
 	~BloomFilter();                  // The Destructor
 	void toString();				 // For information
 
+private:
+	bool ready;
+	int maxEntry;
 	size_t asize;
 	char *a;
 	size_t nfuncs;
 	hashfunc_t *funcs;
-	int Add(const char *s);
-	int Check(const char *s);
+public:
+	virtual int Add(const char *s);
+	virtual int Check(const char *s);
 
 private:
 	char * my_name;
