@@ -37,7 +37,7 @@ void SR::initialize()
     // Retrieve my BloomTable
     bt = BloomTableAccess().get(); // Retrieve the BloomTable
     // Specify who I am to that
-    //bt->
+    //bt->AddToBloomPerso("TEMPERATURE");
 
     tr = TableRAREAccess().get();  // Retrieve the TableRARE
 
@@ -130,6 +130,13 @@ void SR::scheduleMsgToSendNic(MACAddress destMACAddress, SRPacket * srPacket, ui
 	double randomTime = (rand() % 10) + 1.0 + (double)delayMin;
     EV << "     Scheduling to send the message in "<< randomTime << " seconds." <<endl;
     scheduleAt(simTime()+randomTime,srPacket);
+}
+
+// Add a neighbor
+void SR::addNeighbor(MACAddress neighborMACAddress, uint16_t neighborID,BloomFilter neighborBloom){
+	EV <<"[SR]::"<< __FUNCTION__ <<endl;
+	//bt->AddFilter(&neighborBloom,neighborID);
+	addNeighbor(neighborMACAddress,neighborID);
 }
 
 // Add a neighbor
@@ -356,7 +363,7 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 		{
 			// Yes, I know the sink
 			EV << "     neighborList["<<srcSensorID<<"] = " <<neighborList[srcSensorID] << " . I already know the sink." << endl;
-			// Yes : have I already sent an advertisement message ?
+			//have I already sent an advertisement message ?
 			if(hasSentAdvertMsg){
 				// Yes : do nothing
 			}else{
@@ -366,11 +373,12 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 				iDBuilder->setSinkDistance(iDBuilder->getSinkDistance()+1);
 				myID = iDBuilder->getID();
 
-				// No : Send my first advertisement message
+				// Send my first advertisement message
 			    // Create an advertisement packet
 			    SRPacket *sr = new SRPacket("DISCO");
 			    sr->setId(myID);
 			    sr->setMsgType(MSG_DISCOVERY);
+			    //sr->setBloom(bt->GetBloomPerso());
 			    //sr->setQueryType(Q_REQUEST);
 			    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,10);
 
@@ -384,7 +392,8 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 			}
 		}else {
 			// No : Add the sink as neighbor
-			addNeighbor(srcMACAddress,srcSensorID);
+//			addNeighbor(srcMACAddress,srcSensorID);
+			addNeighbor(srcMACAddress,srcSensorID,msg->getBloom());
 			// Send him a request
 		    SRPacket *sr = new SRPacket("DISCO-REQUEST");
 		    sr->setId(myID);
@@ -403,7 +412,8 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 			EV << "     neighborList["<<srcSensorID<<"] = " <<neighborList[srcSensorID] << " . Already registered here!" << endl;
 		}else{
 			// No :  Add this sensor as neighbor
-			addNeighbor(srcMACAddress,srcSensorID);
+//			addNeighbor(srcMACAddress,srcSensorID);
+			addNeighbor(srcMACAddress,srcSensorID,msg->getBloom());
 				// have I already sent an advertisement message ?
 			if(hasSentAdvertMsg){
 				// Yes : do nothing
@@ -419,6 +429,7 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 			    SRPacket *sr = new SRPacket("DISCO");
 			    sr->setId(myID);
 			    sr->setMsgType(MSG_DISCOVERY);
+			    //sr->setBloom(bt->GetBloomPerso());
 			    //sr->setQueryType(Q_REQUEST);
 			    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,10*iDBuilder->getSinkDistance());
 
@@ -542,10 +553,11 @@ void SR::SINK_handleSelfMsg(cMessage *msg){
 		iDBuilder->setArea(0);
 		myID = iDBuilder->getID();
 	    // Create an hello world packet
-	    SRPacket *sr = new SRPacket("DISCO-REQUEST");
+	    SRPacket *sr = new SRPacket("DISCO-INIT");
 	    sr->setId(myID);
 	    sr->setMsgType(MSG_DISCOVERY);
 	    sr->setQueryType(Q_REQUEST);
+	    //sr->setBloom(bt->GetBloomPerso());
 	    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,0);
 	    sensorStatus = STATUS_NORMAL;
 
@@ -599,7 +611,8 @@ void SR::SINK_handleNicDiscoveryMsg(SRPacket *msg){
 	{
 		EV << "     Received Q_REQUEST from " << srcMACAddress << endl;
 		// Add the sensor as neighbor
-		addNeighbor(srcMACAddress,srcSensorID);
+//		addNeighbor(srcMACAddress,srcSensorID);
+		addNeighbor(srcMACAddress,srcSensorID,msg->getBloom());
 
 		// Set my ID in this area
 		iDBuilder->setID(myID);
@@ -613,7 +626,7 @@ void SR::SINK_handleNicDiscoveryMsg(SRPacket *msg){
 	    sr->setId(myID);
 	    sr->setMsgType(MSG_DISCOVERY);
 	    sr->setQueryType(Q_REPLY);
-	    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,10);
+	    scheduleMsgToSendNic(srcMACAddress,sr,10);
 
 		break;
 	}

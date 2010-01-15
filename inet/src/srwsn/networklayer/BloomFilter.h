@@ -5,6 +5,15 @@
 #include <cstdlib>
 #include <omnetpp.h>
 
+// The type of the sensor
+enum SensoType {
+    SENSOR_TEMPERATURE = 1,
+    SENSOR_PRESSURE  = 2,
+    SENSOR_SON  = 3,
+    SENSOR_LIGTH  = 4,
+    SENSOR_HUMIDITY = 5
+};
+
 typedef unsigned int (*hashfunc_t)(const char *);
 
 class BloomFilter

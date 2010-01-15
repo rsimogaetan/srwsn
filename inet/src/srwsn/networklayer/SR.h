@@ -18,6 +18,7 @@ enum STATUS
     STATUS_NORMAL = 2,      // Request.
     STATUS_ALERT = 3      // Reply.
 };
+
 /**
  * Implements the SR protocol.
  */
@@ -82,6 +83,7 @@ class INET_API SR : public QueueBase
 
 	// Add a neighbor
     virtual void addNeighbor(MACAddress neighborMACAddress, uint16_t neighborID);
+    virtual void addNeighbor(MACAddress neighborMACAddress, uint16_t neighborID,BloomFilter neighborBloom);
 
     // return true if an alert can be thrown at this time
     virtual bool isAlertAllowed();
