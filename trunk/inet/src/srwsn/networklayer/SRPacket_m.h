@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.0 from SRPacket.msg.
+// Generated file, do not edit! Created by opp_msgc 4.0 from srwsn/networklayer/SRPacket.msg.
 //
 
 #ifndef _SRPACKET_M_H_
@@ -17,7 +17,7 @@
 
 #include "MACAddress.h"
 #include <stdint.h>  
-
+#include "BloomFilter.h"
 
 
 #define SR_HEADER_BYTES   28
@@ -26,7 +26,7 @@
 
 
 /**
- * Enum generated from <tt>SRPacket.msg</tt> by opp_msgc.
+ * Enum generated from <tt>srwsn/networklayer/SRPacket.msg</tt> by opp_msgc.
  * <pre>
  * enum SRQuery
  * {
@@ -41,7 +41,7 @@ enum SRQuery {
 };
 
 /**
- * Enum generated from <tt>SRPacket.msg</tt> by opp_msgc.
+ * Enum generated from <tt>srwsn/networklayer/SRPacket.msg</tt> by opp_msgc.
  * <pre>
  * enum SRMsg{
  *     MSG_DISCOVERY = 1;    
@@ -58,18 +58,19 @@ enum SRMsg {
 };
 
 /**
- * Class generated from <tt>SRPacket.msg</tt> by opp_msgc.
+ * Class generated from <tt>srwsn/networklayer/SRPacket.msg</tt> by opp_msgc.
  * <pre>
  * packet SRPacket
  * {
  *     int msgType enum(SRMsg);
  *     int queryType enum(SRQuery);
+ * 	int queryId enum(SensoType);
  *     MACAddress srcMACAddress;
  *     MACAddress destMACAddress;
  *     uint16_t Id;
  *     bool amIAlertGenerator;
  *     uint16_t alertTimeStamp;
- * 
+ *     BloomFilter bloom;
  * }
  * </pre>
  */
@@ -78,11 +79,13 @@ class SRPacket : public cPacket
   protected:
     int msgType_var;
     int queryType_var;
+    int queryId_var;
     MACAddress srcMACAddress_var;
     MACAddress destMACAddress_var;
     uint16_t Id_var;
     bool amIAlertGenerator_var;
     uint16_t alertTimeStamp_var;
+    BloomFilter bloom_var;
 
     // protected and unimplemented operator==(), to prevent accidental usage
     bool operator==(const SRPacket&);
@@ -101,6 +104,8 @@ class SRPacket : public cPacket
     virtual void setMsgType(int msgType_var);
     virtual int getQueryType() const;
     virtual void setQueryType(int queryType_var);
+    virtual int getQueryId() const;
+    virtual void setQueryId(int queryId_var);
     virtual MACAddress& getSrcMACAddress();
     virtual const MACAddress& getSrcMACAddress() const {return const_cast<SRPacket*>(this)->getSrcMACAddress();}
     virtual void setSrcMACAddress(const MACAddress& srcMACAddress_var);
@@ -113,6 +118,9 @@ class SRPacket : public cPacket
     virtual void setAmIAlertGenerator(bool amIAlertGenerator_var);
     virtual uint16_t getAlertTimeStamp() const;
     virtual void setAlertTimeStamp(uint16_t alertTimeStamp_var);
+    virtual BloomFilter& getBloom();
+    virtual const BloomFilter& getBloom() const {return const_cast<SRPacket*>(this)->getBloom();}
+    virtual void setBloom(const BloomFilter& bloom_var);
 };
 
 inline void doPacking(cCommBuffer *b, SRPacket& obj) {obj.parsimPack(b);}

@@ -50,6 +50,13 @@ BloomTable::BloomTable(int Neighbors) {// Le nombre de voisins DIRECT est a mett
 	QueryTranslation.push_back(lumiere);
 	QueryTranslation.push_back(humidite);
 	QueryTranslation.push_back(puit);
+
+	QueryTranslation2[SENSOR_LIGTH] = "LIGTH";
+	QueryTranslation2[SENSOR_PRESSURE] = "PRESSURE";
+	QueryTranslation2[SENSOR_TEMPERATURE] = "TEMPERATURE";
+	QueryTranslation2[SENSOR_SON] = "SON";
+	QueryTranslation2[SENSOR_HUMIDITY] = "HUMIDITY";
+
 }
 
 // The Destructor
@@ -124,6 +131,9 @@ int BloomTable::Get(int QueryId, bool Source)
 
 	// On renvoie l'IDnet
 	return PeerIDnet;
+
+
+
 }
 
 
@@ -141,12 +151,15 @@ void BloomTable::AddFilter(BloomFilter* BloomNeighbor, int IDnet){
 
 }
 
+int BloomTable::AddToBloomPerso(const char *info){
+	return BloomPerso->Add(info);
+}
 
-
-//Print information about this object
-void BloomTable::toString(){
-	/*
-	EV << "[BloomTable] Hello, I am ready ? " << ready
-	<<" ; max entry :" << IDlocalmax << endl;
-	*/
+// Print the ID of all the sensor in this BloomTable
+void BloomTable::printFilters(){
+	EV << "Neighbor ID : ";
+	for (unsigned int i=0; i<NeighborsTable.size();i++){
+			EV << GetIDnet(i) <<", ";
+	}
+	EV << endl;
 }

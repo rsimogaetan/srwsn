@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.0 from SRPacket.msg.
+// Generated file, do not edit! Created by opp_msgc 4.0 from srwsn/networklayer/SRPacket.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -51,6 +51,7 @@ SRPacket::SRPacket(const char *name, int kind) : cPacket(name,kind)
 {
     this->msgType_var = 0;
     this->queryType_var = 0;
+    this->queryId_var = 0;
     this->Id_var = 0;
     this->amIAlertGenerator_var = 0;
     this->alertTimeStamp_var = 0;
@@ -72,11 +73,13 @@ SRPacket& SRPacket::operator=(const SRPacket& other)
     cPacket::operator=(other);
     this->msgType_var = other.msgType_var;
     this->queryType_var = other.queryType_var;
+    this->queryId_var = other.queryId_var;
     this->srcMACAddress_var = other.srcMACAddress_var;
     this->destMACAddress_var = other.destMACAddress_var;
     this->Id_var = other.Id_var;
     this->amIAlertGenerator_var = other.amIAlertGenerator_var;
     this->alertTimeStamp_var = other.alertTimeStamp_var;
+    this->bloom_var = other.bloom_var;
     return *this;
 }
 
@@ -85,11 +88,13 @@ void SRPacket::parsimPack(cCommBuffer *b)
     cPacket::parsimPack(b);
     doPacking(b,this->msgType_var);
     doPacking(b,this->queryType_var);
+    doPacking(b,this->queryId_var);
     doPacking(b,this->srcMACAddress_var);
     doPacking(b,this->destMACAddress_var);
     doPacking(b,this->Id_var);
     doPacking(b,this->amIAlertGenerator_var);
     doPacking(b,this->alertTimeStamp_var);
+    doPacking(b,this->bloom_var);
 }
 
 void SRPacket::parsimUnpack(cCommBuffer *b)
@@ -97,11 +102,13 @@ void SRPacket::parsimUnpack(cCommBuffer *b)
     cPacket::parsimUnpack(b);
     doUnpacking(b,this->msgType_var);
     doUnpacking(b,this->queryType_var);
+    doUnpacking(b,this->queryId_var);
     doUnpacking(b,this->srcMACAddress_var);
     doUnpacking(b,this->destMACAddress_var);
     doUnpacking(b,this->Id_var);
     doUnpacking(b,this->amIAlertGenerator_var);
     doUnpacking(b,this->alertTimeStamp_var);
+    doUnpacking(b,this->bloom_var);
 }
 
 int SRPacket::getMsgType() const
@@ -122,6 +129,16 @@ int SRPacket::getQueryType() const
 void SRPacket::setQueryType(int queryType_var)
 {
     this->queryType_var = queryType_var;
+}
+
+int SRPacket::getQueryId() const
+{
+    return queryId_var;
+}
+
+void SRPacket::setQueryId(int queryId_var)
+{
+    this->queryId_var = queryId_var;
 }
 
 MACAddress& SRPacket::getSrcMACAddress()
@@ -174,6 +191,16 @@ void SRPacket::setAlertTimeStamp(uint16_t alertTimeStamp_var)
     this->alertTimeStamp_var = alertTimeStamp_var;
 }
 
+BloomFilter& SRPacket::getBloom()
+{
+    return bloom_var;
+}
+
+void SRPacket::setBloom(const BloomFilter& bloom_var)
+{
+    this->bloom_var = bloom_var;
+}
+
 class SRPacketDescriptor : public cClassDescriptor
 {
   public:
@@ -220,7 +247,7 @@ const char *SRPacketDescriptor::getProperty(const char *propertyname) const
 int SRPacketDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 7+basedesc->getFieldCount(object) : 7;
+    return basedesc ? 9+basedesc->getFieldCount(object) : 9;
 }
 
 unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -234,11 +261,13 @@ unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) cons
     switch (field) {
         case 0: return FD_ISEDITABLE;
         case 1: return FD_ISEDITABLE;
-        case 2: return FD_ISCOMPOUND;
+        case 2: return FD_ISEDITABLE;
         case 3: return FD_ISCOMPOUND;
-        case 4: return FD_ISEDITABLE;
+        case 4: return FD_ISCOMPOUND;
         case 5: return FD_ISEDITABLE;
         case 6: return FD_ISEDITABLE;
+        case 7: return FD_ISEDITABLE;
+        case 8: return FD_ISCOMPOUND;
         default: return 0;
     }
 }
@@ -254,11 +283,13 @@ const char *SRPacketDescriptor::getFieldName(void *object, int field) const
     switch (field) {
         case 0: return "msgType";
         case 1: return "queryType";
-        case 2: return "srcMACAddress";
-        case 3: return "destMACAddress";
-        case 4: return "Id";
-        case 5: return "amIAlertGenerator";
-        case 6: return "alertTimeStamp";
+        case 2: return "queryId";
+        case 3: return "srcMACAddress";
+        case 4: return "destMACAddress";
+        case 5: return "Id";
+        case 6: return "amIAlertGenerator";
+        case 7: return "alertTimeStamp";
+        case 8: return "bloom";
         default: return NULL;
     }
 }
@@ -274,11 +305,13 @@ const char *SRPacketDescriptor::getFieldTypeString(void *object, int field) cons
     switch (field) {
         case 0: return "int";
         case 1: return "int";
-        case 2: return "MACAddress";
+        case 2: return "int";
         case 3: return "MACAddress";
-        case 4: return "uint16_t";
-        case 5: return "bool";
-        case 6: return "uint16_t";
+        case 4: return "MACAddress";
+        case 5: return "uint16_t";
+        case 6: return "bool";
+        case 7: return "uint16_t";
+        case 8: return "BloomFilter";
         default: return NULL;
     }
 }
@@ -297,6 +330,9 @@ const char *SRPacketDescriptor::getFieldProperty(void *object, int field, const 
             return NULL;
         case 1:
             if (!strcmp(propertyname,"enum")) return "SRQuery";
+            return NULL;
+        case 2:
+            if (!strcmp(propertyname,"enum")) return "SensoType";
             return NULL;
         default: return NULL;
     }
@@ -328,11 +364,13 @@ bool SRPacketDescriptor::getFieldAsString(void *object, int field, int i, char *
     switch (field) {
         case 0: long2string(pp->getMsgType(),resultbuf,bufsize); return true;
         case 1: long2string(pp->getQueryType(),resultbuf,bufsize); return true;
-        case 2: {std::stringstream out; out << pp->getSrcMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
-        case 3: {std::stringstream out; out << pp->getDestMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
-        case 4: ulong2string(pp->getId(),resultbuf,bufsize); return true;
-        case 5: bool2string(pp->getAmIAlertGenerator(),resultbuf,bufsize); return true;
-        case 6: ulong2string(pp->getAlertTimeStamp(),resultbuf,bufsize); return true;
+        case 2: long2string(pp->getQueryId(),resultbuf,bufsize); return true;
+        case 3: {std::stringstream out; out << pp->getSrcMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
+        case 4: {std::stringstream out; out << pp->getDestMACAddress(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
+        case 5: ulong2string(pp->getId(),resultbuf,bufsize); return true;
+        case 6: bool2string(pp->getAmIAlertGenerator(),resultbuf,bufsize); return true;
+        case 7: ulong2string(pp->getAlertTimeStamp(),resultbuf,bufsize); return true;
+        case 8: {std::stringstream out; out << pp->getBloom(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
         default: return false;
     }
 }
@@ -349,9 +387,10 @@ bool SRPacketDescriptor::setFieldAsString(void *object, int field, int i, const 
     switch (field) {
         case 0: pp->setMsgType(string2long(value)); return true;
         case 1: pp->setQueryType(string2long(value)); return true;
-        case 4: pp->setId(string2ulong(value)); return true;
-        case 5: pp->setAmIAlertGenerator(string2bool(value)); return true;
-        case 6: pp->setAlertTimeStamp(string2ulong(value)); return true;
+        case 2: pp->setQueryId(string2long(value)); return true;
+        case 5: pp->setId(string2ulong(value)); return true;
+        case 6: pp->setAmIAlertGenerator(string2bool(value)); return true;
+        case 7: pp->setAlertTimeStamp(string2ulong(value)); return true;
         default: return false;
     }
 }
@@ -365,8 +404,9 @@ const char *SRPacketDescriptor::getFieldStructName(void *object, int field) cons
         field -= basedesc->getFieldCount(object);
     }
     switch (field) {
-        case 2: return "MACAddress"; break;
         case 3: return "MACAddress"; break;
+        case 4: return "MACAddress"; break;
+        case 8: return "BloomFilter"; break;
         default: return NULL;
     }
 }
@@ -381,8 +421,9 @@ void *SRPacketDescriptor::getFieldStructPointer(void *object, int field, int i) 
     }
     SRPacket *pp = (SRPacket *)object; (void)pp;
     switch (field) {
-        case 2: return (void *)(&pp->getSrcMACAddress()); break;
-        case 3: return (void *)(&pp->getDestMACAddress()); break;
+        case 3: return (void *)(&pp->getSrcMACAddress()); break;
+        case 4: return (void *)(&pp->getDestMACAddress()); break;
+        case 8: return (void *)(&pp->getBloom()); break;
         default: return NULL;
     }
 }
