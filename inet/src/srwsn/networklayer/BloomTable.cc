@@ -29,11 +29,12 @@ unsigned int sdbm_hash(const char *key)
 //*********************************************************
 
 
-// The Destructor
-BloomTable::BloomTable(int Neighbors) {// Le nombre de voisins DIRECT est a mettre en paramètre
+void BloomTable::initialize()
+{
+	tailleFiltre = par("tailleFiltre");
 
 	// On instancie son propre filtre de bloom
-	BloomPerso = new BloomFilter((size_t) Neighbors, 2, sax_hash, sdbm_hash);
+	BloomPerso = new BloomFilter((size_t) tailleFiltre, 2, sax_hash, sdbm_hash);
 
 	// On instancie le tableau des filtres de blooms voisin
 	NeighborsTable.resize(0);
@@ -59,16 +60,6 @@ BloomTable::BloomTable(int Neighbors) {// Le nombre de voisins DIRECT est a mett
 
 }
 
-// The Destructor
-BloomTable::~BloomTable() {
-	// TODO - Generated method body
-}
-
-void BloomTable::initialize()
-{
-}
-
-void BloomTable::handleMessage(cMessage *msg){};
 
 
 // Conversion IDnet -> IDlocal
