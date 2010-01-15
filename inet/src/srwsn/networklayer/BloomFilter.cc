@@ -64,9 +64,27 @@ BloomFilter::~BloomFilter() {
 	  */
 }
 
+int BloomFilter::Add(const char *s)
+{
+  size_t n;
 
-int BloomFilter::Add(const char *s){return 0;}
-int BloomFilter::Check(const char *s){return 0;}
+  for(n=0; n<this->nfuncs; ++n) {
+    SETBIT(this->a, this->funcs[n](s)%this->asize);
+  }
+
+  return 0;
+}
+
+int BloomFilter::Check(const char *s)
+{
+  size_t n;
+
+  for(n=0; n< this->nfuncs; ++n) {
+    if(!(GETBIT(this->a, this->funcs[n](s)%this->asize))) return 0;
+  }
+
+  return 1;
+}
 
 //Print information about this object
 void BloomFilter::toString(){
