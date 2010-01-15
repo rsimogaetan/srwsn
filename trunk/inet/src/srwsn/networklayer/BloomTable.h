@@ -18,13 +18,18 @@ public:
 
 private:
     virtual void initialize();
-	   virtual void handleMessage(cMessage *msg);
+	virtual void handleMessage(cMessage *msg);
 public:
-    void toString();
-	    int GetIDlocal (int IDnet);
-	    int GetIDnet (int IDlocal);
-	    int Get(int QueryId);
-	    void AddFilter(BloomFilter* BloomNeighbor, int IDnet);
+	virtual void toString();
+	virtual int GetIDlocal (int IDnet);
+	virtual int GetIDnet (int IDlocal);
+	virtual int Get(int QueryId);
+	virtual void AddFilter(BloomFilter* BloomNeighbor, int IDnet);
+	// Returne our own BloomFilter
+	virtual BloomFilter* GetBloomPerso(){return this->BloomPerso;}
+	// Add information to our own BloomFilter
+	//virtual int AddToBloomPerso();
+
 private:
 	    BloomFilter * BloomPerso;
 	    std::vector <BloomFilter*> NeighborsTable;

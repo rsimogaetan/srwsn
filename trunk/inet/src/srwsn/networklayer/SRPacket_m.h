@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.0 from srwsn/networklayer/SRPacket.msg.
+// Generated file, do not edit! Created by opp_msgc 4.0 from SRPacket.msg.
 //
 
 #ifndef _SRPACKET_M_H_
@@ -26,31 +26,44 @@
 
 
 /**
- * Enum generated from <tt>srwsn/networklayer/SRPacket.msg</tt> by opp_msgc.
+ * Enum generated from <tt>SRPacket.msg</tt> by opp_msgc.
  * <pre>
- * enum SROpcode
+ * enum SRQuery
  * {
- * 
- *     SR_REQUEST = 1;      
- *     SR_REPLY = 2;        
- *     SR_INFO = 3;        
- *     SR_ALERT = 4;		
+ *     Q_REQUEST = 1;      
+ *     Q_REPLY = 2;        
  * }
  * </pre>
  */
-enum SROpcode {
-    SR_REQUEST = 1,
-    SR_REPLY = 2,
-    SR_INFO = 3,
-    SR_ALERT = 4
+enum SRQuery {
+    Q_REQUEST = 1,
+    Q_REPLY = 2
 };
 
 /**
- * Class generated from <tt>srwsn/networklayer/SRPacket.msg</tt> by opp_msgc.
+ * Enum generated from <tt>SRPacket.msg</tt> by opp_msgc.
+ * <pre>
+ * enum SRMsg{
+ *     MSG_DISCOVERY = 1;    
+ *     MSG_NORMAL = 2;       
+ *     MSG_ALERT = 3;        
+ *        
+ * }
+ * </pre>
+ */
+enum SRMsg {
+    MSG_DISCOVERY = 1,
+    MSG_NORMAL = 2,
+    MSG_ALERT = 3
+};
+
+/**
+ * Class generated from <tt>SRPacket.msg</tt> by opp_msgc.
  * <pre>
  * packet SRPacket
  * {
- *     int opcode enum(SROpcode);
+ *     int msgType enum(SRMsg);
+ *     int queryType enum(SRQuery);
  *     MACAddress srcMACAddress;
  *     MACAddress destMACAddress;
  *     uint16_t Id;
@@ -63,7 +76,8 @@ enum SROpcode {
 class SRPacket : public cPacket
 {
   protected:
-    int opcode_var;
+    int msgType_var;
+    int queryType_var;
     MACAddress srcMACAddress_var;
     MACAddress destMACAddress_var;
     uint16_t Id_var;
@@ -83,8 +97,10 @@ class SRPacket : public cPacket
     virtual void parsimUnpack(cCommBuffer *b);
 
     // field getter/setter methods
-    virtual int getOpcode() const;
-    virtual void setOpcode(int opcode_var);
+    virtual int getMsgType() const;
+    virtual void setMsgType(int msgType_var);
+    virtual int getQueryType() const;
+    virtual void setQueryType(int queryType_var);
     virtual MACAddress& getSrcMACAddress();
     virtual const MACAddress& getSrcMACAddress() const {return const_cast<SRPacket*>(this)->getSrcMACAddress();}
     virtual void setSrcMACAddress(const MACAddress& srcMACAddress_var);
