@@ -31,31 +31,30 @@ cplusplus {{
 
 
 //
-// The list of practically important SR opcodes
+// The different types of queris possible
 //
-enum SROpcode
+enum SRQuery
 {
+    Q_REQUEST = 1;      // Request.
+    Q_REPLY = 2;        // Reply.
+}
 
-    SR_REQUEST = 1;      // Request.
-    SR_REPLY = 2;        // Reply.
-    SR_INFO = 3;        // Info message
-    SR_ALERT = 4;		// Alert paquet
+//
+// The message type
+//
+enum SRMsg{
+    MSG_DISCOVERY = 1;    // Messages for discovery
+    MSG_NORMAL = 2;       // Message exchanged on normal state
+    MSG_ALERT = 3;        // Exchanged message when in alert
+       
 }
 
 
-//
-// ARP packet. This is a specialized version: prepared for IEEE 802 hardware
-// addresses and IPv4. Packet fields are therefore represented by C++ classes
-// MACAddress and IPAddress. Also, some ARP protocol header fields are
-// not modelled explicitly (their values are implied):
-//   - hardwareType (not needed for modelling);
-//   - protocol type (0x800 IPv4)
-//   - hardware address length (6)
-//   - protocol address length (4)
-//
+// Fields of the SR Packet
 packet SRPacket
 {
-    int opcode enum(SROpcode);
+    int msgType enum(SRMsg);
+    int queryType enum(SRQuery);
     MACAddress srcMACAddress;
     MACAddress destMACAddress;
     uint16_t Id;

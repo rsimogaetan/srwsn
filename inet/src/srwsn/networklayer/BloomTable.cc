@@ -142,6 +142,7 @@ void BloomTable::AddFilter(BloomFilter* BloomNeighbor, int IDnet){
 }
 
 
+
 //Print information about this object
 void BloomTable::toString(){
 	/*
