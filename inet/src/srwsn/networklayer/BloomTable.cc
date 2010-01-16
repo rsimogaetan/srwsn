@@ -39,8 +39,8 @@ void BloomTable::initialize()
 	// On instancie le tableau des filtres de blooms voisin
 	NeighborsTable.resize(0);
 
-	// On instancie le tableau de conversion d'ID (net<->local)
-	TableID[0] = 0;
+	// On instancie le tableau de conversion d'ID (MAC<->local)
+	IDtoMACtable[0] = 0;
 	IDlocalmax = 1;                // On commence à 1 car 0 représente le noeud lui même
 
 	// On remplit le tableau de traduction de requete int QueryId <-> char * Query
@@ -61,11 +61,11 @@ void BloomTable::initialize()
 
 
 
-// Conversion IDnet -> IDlocal
-int BloomTable::GetIDlocal (int IDnet){
+// Conversion MAC -> IDlocal
+int BloomTable::GetIDlocal (MACAddress MAC){
 
 	// On alloue une correspondance supplementaire
-	TableID[IDlocalmax]=IDnet;
+	IDtoMACtable[IDlocalmax]=MAC;
 
 	IDlocalmax++;
 
@@ -73,16 +73,10 @@ int BloomTable::GetIDlocal (int IDnet){
 }
 
 
-// Conversion IDlocal -> IDnet
-int BloomTable::GetIDnet (int IDlocal){
-	return TableID[IDlocal];
-}
-
-
 // Fonction qui permet de retourner le noeud VOISIN DIRECT qui peut repondre a la requete
 // Renvoie 0 si le capteur lui meme peut répondre à la requete
 // La variable Source permet d'indiquer si le capteur est la source du message
-int BloomTable::Get(int QueryId, bool Source)
+MACAddress BloomTable::Get(int QueryId, bool Source)
 {
 	int PeerIdlocal=-1;
 
@@ -117,20 +111,15 @@ int BloomTable::Get(int QueryId, bool Source)
 		}
 	}
 
-	int PeerIDnet = GetIDnet(PeerIdlocal);
-
-	// On renvoie l'IDnet
-	return PeerIDnet;
-
-
-
+	// On renvoie la MAC du local id
+	return IDtoMACtable[PeerIdlocal];
 }
 
 
 // Fonction qui permet d'ajouter un filtre dans la table de Bloom
-void BloomTable::AddFilter(BloomFilter* BloomNeighbor, int IDnet){
+void BloomTable::AddFilter(BloomFilter* BloomNeighbor, MACAddress MAC){
 	// On ajoute le propietaire du filtre dans le tableau de correspondance
-	int IDlocal = GetIDlocal(IDnet);
+	int IDlocal = GetIDlocal(MAC);
 
 	// On alloue la mémoire pour stocker un nouveau filtre (pointeur)
 	// Il faut noter que la taille de ce vecteur vaut IDlocalmax (un fitlre de bloom par id)
@@ -150,7 +139,7 @@ void BloomTable::printFilters(){
 	//TODO: This function should print the contain of the bloomfilter of all its neighbor
 	EV << "[BloomTable] Neighbor ID : ";
 	for (unsigned int i=0; i<NeighborsTable.size();i++){
-			EV << GetIDnet(i) <<", ";
+			EV << IDtoMACtable[i] <<", ";
 	}
 	EV << endl;
 }

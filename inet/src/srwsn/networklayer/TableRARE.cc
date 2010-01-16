@@ -39,7 +39,7 @@ TableRARE::TableRARE(int Neighbors) {
 	}
 
 	// On initialise l'id à 0
-	IDlocal=0;
+	IDlocalmax=0;
 
 	srand(time(NULL));
 
@@ -56,25 +56,28 @@ void TableRARE::initialize()
 }
 
 
-// Une methode qui prend en entree l'ID dans le reseau et qui donne en sortie un ID logique (local)
-int TableRARE::IDnettoIDlocal(int IDnet){
+// Une methode qui prend en entree la MAC et qui donne en sortie un ID logique (local)
+int TableRARE::MACtoIDlocal(MACAddress MAC){
 
-	// On alloue l espace a la nouvelle entree
-	IDtable.resize(IDlocal+1);
-
-	// On attribue un id local a l'id du reseau
-	IDtable[IDlocal]=IDnet;
+	// On attribue un id local a la MAC
+	MACtoIdtable[IDlocalmax]=MAC;
 
 	// On passe a l id local libre suivant
-	IDlocal++;
+	IDlocalmax++;
 
-	return IDlocal-1;
+	return IDlocalmax-1;
 }
 
-void TableRARE::UpdateTable(int QueryId,int PeerId)
+
+
+void TableRARE::UpdateTable(int QueryId,MACAddress MAC)
 {
+	// On convertit la MACAddress en Idlocal
+	vector<MACAddress>::iterator IDlocal;
+	IDlocal = find(MACtoIdtable.begin(), MACtoIdtable.end(), MAC);
+
 	// On incrémente la valeur
-	table[QueryId][PeerId]++;
+	table[QueryId][*IDlocal]++;
 }
 
 
@@ -97,9 +100,10 @@ int TableRARE::QueryRelaxation(int QueryId) {
 
 
 //On définit tout d'abord une méthode qui renvoit un pair pertinent
-int TableRARE::LearningPeerSelection(int QueryId){
+MACAddress TableRARE::LearningPeerSelection(int QueryId){
 
-	int i=0, IdPeer=-1;
+	int i=0, IdPeer;
+	MACAddress MACPeer=NULL;
 	int Max = table[QueryId][0];
 
 	// On parcourt la table jusqu'à trouver le pair le plus pertinent
@@ -108,7 +112,7 @@ int TableRARE::LearningPeerSelection(int QueryId){
 	while(i<maxPeers){
 		if(table[QueryId][i] > Max){
 		   Max = table[QueryId][i];
-		   IdPeer = i;
+		   MACPeer = MACtoIdtable[i];
 		}
 		i++;
 	}
@@ -116,11 +120,11 @@ int TableRARE::LearningPeerSelection(int QueryId){
 	// Dans le cas ou il n'y a pas de pairs pertinents
 	// On cherche la requete précédente la plus proche de la requête courante
 	// et on itère le processus
-	if(IdPeer == -1) {
+	if(MACPeer == NULL) {
 		int newQueryId;
 		newQueryId = QueryRelaxation(QueryId);
 		if(newQueryId!=QueryId){
-		IdPeer = LearningPeerSelection(newQueryId);
+		MACPeer = LearningPeerSelection(newQueryId);
 		}
 	}
 
@@ -131,7 +135,7 @@ int TableRARE::LearningPeerSelection(int QueryId){
 			printf("--> On passe a la selection aleatoire \n");
 		}
 
-	return IdPeer;
+	return MACPeer;
 }
 
 

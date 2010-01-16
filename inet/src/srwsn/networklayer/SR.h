@@ -11,6 +11,7 @@
 #include "IDBuilder.h"
 
 typedef std::map<int, MACAddress> NeighborList_t;
+typedef std::map<uint16_t, MACAddress> RecordTable_t;
 
 enum STATUS
 {
@@ -44,6 +45,11 @@ class INET_API SR : public QueueBase
 	* @name Container used to list my neighbors' mac addresses
 	*/
 	NeighborList_t neighborList;
+
+	/**
+	* Record Table to know to which neighbor we forward the answer
+	*/
+	RecordTable_t RecordTable;
 
 	bool hasSentAdvertMsg;  // For the advertisement message
 

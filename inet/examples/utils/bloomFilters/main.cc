@@ -46,8 +46,8 @@ int main(int argc, char ** argv)
 	char line[1024];
 	char *p;
 	char *name = argv[1];
-	unsigned int size = 12;
-	unsigned int nfuncs = 2;
+	unsigned int size = 96;
+	unsigned int nfuncs = 1;
 
 	BloomFilter *BloomF = new BloomFilter(size, nfuncs, sax_hash, sdbm_hash);
 
@@ -67,6 +67,8 @@ int main(int argc, char ** argv)
 
 		BloomF->Add(line);
 	}
+
+	BloomF->PrintFilter(size);
 
 	// On choisit le mot sur lequel on veut verifier sa presence dans la table
 	fprintf(stderr, "Choisir un mot :\n");
