@@ -60,7 +60,7 @@ class INET_API SR : public QueueBase
 	cMessage *selfGenerateRequestMsg;  // Message to schedule a random request
 
 	static uint16_t numberSensorNotKnown; // The number of sensors not known in the network yet
-
+	static uint16_t numberSensorInNetwork; // The total number of connected sensor in the network
   public:
     SR() {};
 
@@ -96,6 +96,20 @@ class INET_API SR : public QueueBase
     virtual void dumpNeighbors();
     // Change the color of my display
     virtual void changeDisplay();
+    // Display informations on the node
+    virtual void updateDisplay();
+    // Return the mac Addresse corresponding to that id
+    virtual MACAddress idToMACAddress(uint16_t id);
+    // This method helps to schedule a time when to generate a request
+    virtual void scheduleTimeToGenerateRequest();
+    /*
+     *  Statistic numbers
+     */
+    long numSent;      // The number of packets sent
+    long numReceived;  // The number of packets received
+    cLongHistogram hopCountStats;  // Count the number of hops until reaches destination
+    cOutVector hopCountVector;
+
   protected:
 	  /*
 	   * Methodes used only by simple nodes

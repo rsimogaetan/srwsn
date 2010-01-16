@@ -62,6 +62,7 @@ packet SRPacket
     bool amIAlertGenerator;
     uint16_t alertTimeStamp;
     BloomFilter bloom;
+    uint16_t hopCount;
 }
 
 

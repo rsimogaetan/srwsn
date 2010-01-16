@@ -7,11 +7,11 @@
 
 // The type of the sensor
 enum SensoType {
-    SENSOR_TEMPERATURE = 1,
-    SENSOR_PRESSURE  = 2,
-    SENSOR_SON  = 3,
-    SENSOR_LIGTH  = 4,
-    SENSOR_HUMIDITY = 5
+    SENSOR_TEMPERATURE = 0,
+    SENSOR_PRESSURE  = 1,
+    SENSOR_SONG  = 2,
+    SENSOR_LIGTH  = 3,
+    SENSOR_HUMIDITY = 4
 };
 
 typedef unsigned int (*hashfunc_t)(const char *);
@@ -35,7 +35,9 @@ private:
 	hashfunc_t *funcs;
 public:
 	virtual int Add(const char *s);
+	virtual int Add(std::string word);
 	virtual int Check(const char *s);
+	virtual int Check(std::string word);
 
 private:
 	char * my_name;
