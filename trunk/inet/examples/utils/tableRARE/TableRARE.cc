@@ -12,12 +12,12 @@ const int MAXQUERIES=6;  // Temperature, Pression, Son, Lumiere, Humidite, Puit
 const int MAXTYPES=4;    // Relation math, Feu, Intru, Pluie
 
 // On definit la table des requetes
-int Queries[MAXQUERIES][MAXTYPES]={{1,1,0,0},
-								   {1,0,0,0},
-								   {0,0,1,1},
-								   {0,1,1,0},
-								   {0,0,0,1},
-								   {0,0,0,0}}; //A definir
+int Queries[MAXQUERIES][MAXTYPES]={/*T*/{1,1,0,0},
+								   /*P*/{1,0,0,0},
+								   /*S*/{0,0,1,1},
+								   /*L*/{0,1,1,0},
+								   /*H*/{0,0,0,1},
+								   /*P*/{0,0,0,0}}; //A definir
 
 
 TableRARE::TableRARE(int Neighbors) {

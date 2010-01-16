@@ -2,6 +2,7 @@
 #define __BLOOMFILTER_H
 
 #include<cstdlib>
+#include<cstdio>
 
 typedef unsigned int (*hashfunc_t)(const char *);
 
@@ -10,6 +11,7 @@ public:
 	BloomFilter(size_t size, size_t nfuncs, ...);  // The Constructor
 	~BloomFilter();                  // The Destructor
 	void toString();				 // For information
+	void PrintFilter(int size);
 
 	size_t asize;
 	char *a;
