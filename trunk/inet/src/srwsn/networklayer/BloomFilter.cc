@@ -64,6 +64,14 @@ BloomFilter::~BloomFilter() {
 	  */
 }
 
+int BloomFilter::Add(std::string word){
+	size_t size = word.size() + 1;
+	char * buffer = new char[ size ];
+	strncpy( buffer, word.c_str(), size );
+
+	return Add(buffer);
+}
+
 int BloomFilter::Add(const char *s)
 {
   size_t n;
@@ -73,6 +81,14 @@ int BloomFilter::Add(const char *s)
   }
 
   return 0;
+}
+
+int BloomFilter::Check(std::string word){
+	size_t size = word.size() + 1;
+	char * buffer = new char[ size ];
+	strncpy( buffer, word.c_str(), size );
+
+	return Check(buffer);
 }
 
 int BloomFilter::Check(const char *s)

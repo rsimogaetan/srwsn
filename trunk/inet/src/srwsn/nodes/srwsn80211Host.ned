@@ -17,8 +17,8 @@ module srwsn80211Host
     parameters:
         @node();
         string mobilityType = default("NullMobility");
-        @display("i=device/pocketpc_s");
-    gates:
+	    @display("i=device/pocketpc_s");
+        gates:
         input radioIn @directIn;
     submodules:
         notificationBoard: NotificationBoard {

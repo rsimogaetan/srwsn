@@ -55,6 +55,7 @@ SRPacket::SRPacket(const char *name, int kind) : cPacket(name,kind)
     this->Id_var = 0;
     this->amIAlertGenerator_var = 0;
     this->alertTimeStamp_var = 0;
+    this->hopCount_var = 0;
 }
 
 SRPacket::SRPacket(const SRPacket& other) : cPacket()
@@ -80,6 +81,7 @@ SRPacket& SRPacket::operator=(const SRPacket& other)
     this->amIAlertGenerator_var = other.amIAlertGenerator_var;
     this->alertTimeStamp_var = other.alertTimeStamp_var;
     this->bloom_var = other.bloom_var;
+    this->hopCount_var = other.hopCount_var;
     return *this;
 }
 
@@ -95,6 +97,7 @@ void SRPacket::parsimPack(cCommBuffer *b)
     doPacking(b,this->amIAlertGenerator_var);
     doPacking(b,this->alertTimeStamp_var);
     doPacking(b,this->bloom_var);
+    doPacking(b,this->hopCount_var);
 }
 
 void SRPacket::parsimUnpack(cCommBuffer *b)
@@ -109,6 +112,7 @@ void SRPacket::parsimUnpack(cCommBuffer *b)
     doUnpacking(b,this->amIAlertGenerator_var);
     doUnpacking(b,this->alertTimeStamp_var);
     doUnpacking(b,this->bloom_var);
+    doUnpacking(b,this->hopCount_var);
 }
 
 int SRPacket::getMsgType() const
@@ -201,6 +205,16 @@ void SRPacket::setBloom(const BloomFilter& bloom_var)
     this->bloom_var = bloom_var;
 }
 
+uint16_t SRPacket::getHopCount() const
+{
+    return hopCount_var;
+}
+
+void SRPacket::setHopCount(uint16_t hopCount_var)
+{
+    this->hopCount_var = hopCount_var;
+}
+
 class SRPacketDescriptor : public cClassDescriptor
 {
   public:
@@ -247,7 +261,7 @@ const char *SRPacketDescriptor::getProperty(const char *propertyname) const
 int SRPacketDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 9+basedesc->getFieldCount(object) : 9;
+    return basedesc ? 10+basedesc->getFieldCount(object) : 10;
 }
 
 unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -268,6 +282,7 @@ unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) cons
         case 6: return FD_ISEDITABLE;
         case 7: return FD_ISEDITABLE;
         case 8: return FD_ISCOMPOUND;
+        case 9: return FD_ISEDITABLE;
         default: return 0;
     }
 }
@@ -290,6 +305,7 @@ const char *SRPacketDescriptor::getFieldName(void *object, int field) const
         case 6: return "amIAlertGenerator";
         case 7: return "alertTimeStamp";
         case 8: return "bloom";
+        case 9: return "hopCount";
         default: return NULL;
     }
 }
@@ -312,6 +328,7 @@ const char *SRPacketDescriptor::getFieldTypeString(void *object, int field) cons
         case 6: return "bool";
         case 7: return "uint16_t";
         case 8: return "BloomFilter";
+        case 9: return "uint16_t";
         default: return NULL;
     }
 }
@@ -371,6 +388,7 @@ bool SRPacketDescriptor::getFieldAsString(void *object, int field, int i, char *
         case 6: bool2string(pp->getAmIAlertGenerator(),resultbuf,bufsize); return true;
         case 7: ulong2string(pp->getAlertTimeStamp(),resultbuf,bufsize); return true;
         case 8: {std::stringstream out; out << pp->getBloom(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
+        case 9: ulong2string(pp->getHopCount(),resultbuf,bufsize); return true;
         default: return false;
     }
 }
@@ -391,6 +409,7 @@ bool SRPacketDescriptor::setFieldAsString(void *object, int field, int i, const 
         case 5: pp->setId(string2ulong(value)); return true;
         case 6: pp->setAmIAlertGenerator(string2bool(value)); return true;
         case 7: pp->setAlertTimeStamp(string2ulong(value)); return true;
+        case 9: pp->setHopCount(string2ulong(value)); return true;
         default: return false;
     }
 }

@@ -16,7 +16,7 @@ network srwsn80211
     submodules:
         host[numHosts]: srwsn80211Host {
             parameters:
-                @display("i=block/routing;is=s");
+                @display("i=block/routing;is=vs");
         }
         channelcontrol: ChannelControl {
             parameters:

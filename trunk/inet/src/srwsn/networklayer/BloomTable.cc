@@ -52,12 +52,11 @@ void BloomTable::initialize()
 	QueryTranslation.push_back(humidite);
 	QueryTranslation.push_back(puit);
 
+	QueryTranslation2[SENSOR_HUMIDITY] = "HUMIDITY";
 	QueryTranslation2[SENSOR_LIGTH] = "LIGTH";
 	QueryTranslation2[SENSOR_PRESSURE] = "PRESSURE";
+	QueryTranslation2[SENSOR_SONG] = "SONG";
 	QueryTranslation2[SENSOR_TEMPERATURE] = "TEMPERATURE";
-	QueryTranslation2[SENSOR_SON] = "SON";
-	QueryTranslation2[SENSOR_HUMIDITY] = "HUMIDITY";
-
 }
 
 
@@ -148,9 +147,46 @@ int BloomTable::AddToBloomPerso(const char *info){
 
 // Print the ID of all the sensor in this BloomTable
 void BloomTable::printFilters(){
-	EV << "Neighbor ID : ";
+	//TODO: This function should print the contain of the bloomfilter of all its neighbor
+	EV << "[BloomTable] Neighbor ID : ";
 	for (unsigned int i=0; i<NeighborsTable.size();i++){
 			EV << GetIDnet(i) <<", ";
 	}
 	EV << endl;
+}
+
+// Update the display of the sensor, depending on its nature
+void BloomTable::updateDisplay(std::string myIcon){
+	// change icon displayed in Tkenv
+	cDisplayString* display_string = &getParentModule()->getDisplayString();
+	size_t size = myIcon.size() + 1;
+	char * buffer = new char[ size ];
+	strncpy( buffer, myIcon.c_str(), size );
+	display_string->setTagArg("i", 0, buffer);
+}
+
+// Select random type for this Bloom Filter (BloomPerso)
+void BloomTable::selectRandomType(){
+	// Chose the type of the sensor
+	//(int)QueryTranslation2.size()
+	int param = intuniform(0,4);
+	QueryTranslation_t::iterator it;
+	it =  QueryTranslation2.find(param);
+	ASSERT(it != QueryTranslation2.end());
+
+	std::string sensorType = (*it).second;
+	BloomPerso->Add(sensorType);
+	EV << " My sensor type is : " << sensorType << endl;
+
+	if(sensorType.compare("HUMIDITY") == 0)
+		updateDisplay("srwsn/sensor_humidity");
+	if(sensorType.compare("LIGTH") == 0)
+		updateDisplay("srwsn/sensor_ligth");
+	if(sensorType.compare("PRESSURE") == 0)
+		updateDisplay("srwsn/sensor_pressure");
+	if(sensorType.compare("SONG") == 0)
+		updateDisplay("srwsn/sensor_song");
+	if(sensorType.compare("TEMPERATURE") == 0)
+		updateDisplay("srwsn/sensor_temperature");
+
 }
