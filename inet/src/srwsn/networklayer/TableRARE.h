@@ -42,5 +42,7 @@ public:
 	void toString();
 	// Increase the similarity between 2 queries in the query similarity map
 	virtual void increaseSimilarity(int queryId1, int queryId2);
+	// Return the sum of bits in number
+	virtual int bitSum(uint64_t number);
 };
 #endif

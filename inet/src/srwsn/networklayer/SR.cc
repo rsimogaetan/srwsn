@@ -19,6 +19,7 @@ Define_Module(SR);
 // Initialize the number of not known sensors in the network
 uint16_t SR::numberSensorNotKnown = 0;
 uint16_t SR::numberSensorInNetwork = 0;
+bool SR::iCanSendRequest = true;
 
 // This module is divided in 3 parts : common part, simple sensor part and sink part
 
@@ -60,6 +61,13 @@ void SR::initialize()
     // must be higher than the alert maximum livetime divided by the
     // the space required to store alerts
     TIME_BETWEEN_ALERTS = MAX_ALERT_LIVETIME / MAX_ENTRY_RARE;
+
+	NB_EVENT_IN_LIVETIME = 64; // Maximum number of events in one livetime
+	EVENT_MAX_LIVETIME = 5000; // Time after which another event can be thrown
+	LIVETIME = EVENT_MAX_LIVETIME * NB_EVENT_IN_LIVETIME;  // An event must not be relevant after this amount of time
+
+	currentRequestTimeStamp = 0; // There are no current request now
+	generatorBitmap = 0; // Anybody can send a request at the begining
 
     // Initialization of global messages
     falseAlertTimeoutMsg = new cMessage("FalseAlertTimeout");
@@ -152,7 +160,7 @@ void SR::scheduleMsgToSendNic(SRPacket * srPacket, uint16_t delayMin){
     srPacket->setControlInfo(controlInfo);
 
     // TODO : Maybe we will use doublerand() from omnetpp.h
-	double randomTime = (rand() % 10) + 1.0 + (double)delayMin;
+	uint32_t randomTime = (rand() % 10) + 1.0 + (uint32_t)delayMin;
     EV << "     Scheduling to send the message in "<< randomTime << " seconds. ";
     scheduleAt(simTime()+randomTime,srPacket);
     EV  <<"src: " << myMACAddress << ", dest: " << srPacket->getDestMACAddress() <<endl;
@@ -304,11 +312,37 @@ MACAddress SR::idToMACAddress(uint16_t id){
 // This method helps to schedule a time to generate a request
 void SR::scheduleTimeToGenerateRequest(){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
-	// Generate a request  after a random time
-	//double randomTime = ((rand() %  numberSensorNotKnown+1) + 1.0)*TIME_BETWEEN_ALERTS;
-	double randomTime = numberSensorNotKnown*10 +
-		((rand() %  numberSensorInNetwork+1) + 1.0)*TIME_BETWEEN_ALERTS;
-    EV << "     Scheduling to send request message in "<< randomTime << " seconds." << ",TIME_BETWEEN_ALERTS=" << TIME_BETWEEN_ALERTS <<endl;
+	// Generate a request  after a random time in the next event time slot
+	uint32_t timeInSeconds = (uint32_t)simTime().raw();
+	uint32_t timeInCurrentLivetime = timeInSeconds % LIVETIME;
+	ASSERT(timeInCurrentLivetime < LIVETIME);
+	uint32_t nextSlotTime = (((timeInCurrentLivetime/EVENT_MAX_LIVETIME) + 1)*EVENT_MAX_LIVETIME) - timeInCurrentLivetime;
+
+	uint32_t randPosInBitmap = (rand()%64);   // a random position in the bitmap  [0; 63]
+	int ii=0 ;  // You may not be luck enough to have a free position
+	while(((generatorBitmap) & (1<<randPosInBitmap)) == 1){
+		// 1 & 1 == 1   and 0 & 1 == 0
+		// As long as that position is already set, I chose another one
+		randPosInBitmap = (rand()%64);
+		if(ii == 64){ // We have tried too much with no luck. We sould get out of here.
+			EV <<  "    Sorry, there are no pisition available to send a request now. You will not make any request in this simulation." <<endl;
+			return;
+		}
+		ii++;
+	}
+	// Here there is a free position in the bitmap
+	EV << "    Youpi, there is a free slot time for me. The slot time number: "<<randPosInBitmap << endl;
+
+	uint32_t randomTime = nextSlotTime  // wait till the next time slot
+		+ (randPosInBitmap)*EVENT_MAX_LIVETIME  // Randomly chose time slot
+		+ (rand() % EVENT_MAX_LIVETIME); // Randomly chose a time in that time slot
+    EV << "     Scheduling to send request message in "<< randomTime << " seconds."
+    << " timeInSeconds=" << timeInSeconds
+    << " timeInCurrentLivetime=" <<timeInCurrentLivetime
+    << " nextSlotTime=" <<nextSlotTime
+    << " EVENT_MAX_LIVETIME=" <<EVENT_MAX_LIVETIME
+    <<endl;
+	//ASSERT(randomTime < LIVETIME);
     scheduleAt(simTime()+randomTime,selfGenerateRequestMsg);
 }
 
@@ -414,6 +448,9 @@ void SR::handleSRMsg(SRPacket *msg)
 
 	// delete old control info
 	delete msg->removeControlInfo();
+
+	EV << "    msg->timestamp : " << msg->getMyTimestamp() << endl;
+	msg->setHopCount(msg->getHopCount()+1); // J'incrémente le nombre de saut réalisé par la requête
 
 	switch(msg->getMsgType()){
 	case MSG_DISCOVERY:
@@ -605,8 +642,15 @@ void SR::handleNicNormalMsg(SRPacket *message){
 	int delayMin = 10;
 	// 2eme Cas: Je reçoit une requête
 	if ( (message->getQueryType() == Q_REQUEST) ) {  // C'est sur que c'est pas moi qui ai créé cette requête
-		EV << "       I just received a request for " << message->getQueryId() <<endl;
+		EV << "       I just received a request for " << message->getQueryId() << " and timestamp is :" << message->getMyTimestamp() <<endl;
 
+		if(currentRequestTimeStamp == message->getMyTimestamp()){
+			EV << "   I Already have sent this request " << currentRequestTimeStamp <<" . I should destroy this copy." <<endl;
+			delete message;
+			return;
+		}
+
+		currentRequestTimeStamp = message->getMyTimestamp();
 		// On stocke la personne qui a envoye la requete soit le couplet <IDsource, prevMAC>
 		// pour utiliser cette information lors de la réception de la réponse
 		RecordTable[message->getId()] = message->getSrcMACAddress();
@@ -621,13 +665,25 @@ void SR::handleNicNormalMsg(SRPacket *message){
 		if ((PeerWithAnswer.equals(myMACAddress))) {
 			EV << "         And I can respond to that request : "<< message->getQueryId() <<endl;
 
+			// Set a request name with its
+			std::stringstream responseStream;
+			std::string responseName_str;
+
+			responseStream << "RESPONSE-" << currentRequestTimeStamp;
+			responseStream >> responseName_str;
+			size_t size = responseName_str.size() + 1;
+			char * responseName_char = new char[ size ];
+			strncpy( responseName_char, responseName_str.c_str(), size );
+
 			// Je crée le message de réponse et rempli les champs puis l'envoie
-			SRPacket *messageReponse = new SRPacket("LA REPONSE");
+			SRPacket *messageReponse = new SRPacket(responseName_char);
 			messageReponse->setMsgType(MSG_NORMAL); // C'est un message normal
 			messageReponse->setQueryType(Q_REPLY); // C'est une reponse
 			messageReponse->setId(message->getId()); // Je met l'ID de celui qui a besion de la réponse pour qu'il se reconnaisse
+			messageReponse->setHopCount(message->getHopCount()); // Je met le nombre de saut réalisé par la requête
 			messageReponse->setSrcMACAddress(myMACAddress);
-			// TODO : Je ne comprend pas bien la ligne suivante
+			messageReponse->setMyTimestamp(currentRequestTimeStamp);
+			// TODO : Mettre la réponse dans le message
 			// Si j'était moi même l'émetteur de la requête
 			MACAddress nextHop;
 			if(message->getId() == myID){
@@ -723,6 +779,7 @@ void SR::handleNicNormalMsg(SRPacket *message){
 	    uint16_t hopcount = message->getHopCount();
 	    EV << "Message " << message << " arrived after " << hopcount << " hops.\n";
 	    bubble("ARRIVED, starting new one!");
+	    iCanSendRequest = true;
 	}
 
 	/*
@@ -741,18 +798,38 @@ void SR::handleNicNormalMsg(SRPacket *message){
 void SR::generaterRandomRequest(){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 	// TODO: generate a random request
+	/*
+	// Only one request on the whole network at the time
+	if(iCanSendRequest){
+		iCanSendRequest = false;
+	}else{
+		EV <<"    I cannot generate a request now. Only one request at the time on the whole network" <<endl;
+		scheduleTimeToGenerateRequest();
+		return;
+	}*/
 
 	// On initialise le peer qui a potentiellement une réponse à -1 (il n'existe pas)
 	MACAddress PeerWithAnswer = MACAddress::UNSPECIFIED_ADDRESS;
 
+	// Set a request name with its
+	std::stringstream requestStream;
+	std::string requestName_str;
+	uint32_t timeInSeconds = (uint32_t)simTime().raw();
+	currentRequestTimeStamp = timeInSeconds % LIVETIME;
+	requestStream << "REQUEST-" << currentRequestTimeStamp;
+	requestStream >> requestName_str;
+	size_t size = requestName_str.size() + 1;
+	char * requestName_char = new char[ size ];
+	strncpy( requestName_char, requestName_str.c_str(), size );
+
 	// Create an normal request packet
-    SRPacket *myRequest = new SRPacket("NORMAL-REQUEST");
+    SRPacket *myRequest = new SRPacket(requestName_char);
     myRequest->setId(myID);
     myRequest->setMsgType(MSG_NORMAL);
     myRequest->setQueryType(Q_REQUEST);
     myRequest->setQueryId(SENSOR_HUMIDITY);
     myRequest->setHopCount(0);
-
+    myRequest->setMyTimestamp(currentRequestTimeStamp);
 	// 1er Cas: Je veux envoyer une requête
 
 	// Je regarde d'abord dans mes filtres de Bloom si mes voisins ont la réponse

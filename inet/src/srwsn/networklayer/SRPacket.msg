@@ -63,6 +63,7 @@ packet SRPacket
     uint16_t alertTimeStamp;
     BloomFilter bloom;
     uint16_t hopCount;
+    uint32_t myTimestamp;
 }
 
 

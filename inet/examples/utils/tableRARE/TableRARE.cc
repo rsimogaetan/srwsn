@@ -1,160 +1,98 @@
-
-using namespace std;
-#include <iostream>
-#include <vector>
+//#include <omnetpp.h>
 #include "TableRARE.h"
-#include <stdlib.h>  // For rand
-#include <time.h>  // For rand
+#include <iostream>
+#include <stdint.h>  // Use [u]intN_t if you need exactly N bits.
+#include <assert.h>
+using namespace std;
 
 
-// Paramètres
-const int MAXQUERIES=6;  // Temperature, Pression, Son, Lumiere, Humidite, Puit
-const int MAXTYPES=4;    // Relation math, Feu, Intru, Pluie
+TableRARE::TableRARE(){
+	ready = true;
 
-// On definit la table des requetes
-int Queries[MAXQUERIES][MAXTYPES]={/*T*/{1,1,0,0},
-								   /*P*/{1,0,0,0},
-								   /*S*/{0,0,1,1},
-								   /*L*/{0,1,1,0},
-								   /*H*/{0,0,0,1},
-								   /*P*/{0,0,0,0}}; //A definir
-
-
-TableRARE::TableRARE(int Neighbors) {
-
-	maxPeers=Neighbors;
-	maxQueries=MAXQUERIES;
-	maxTypes=MAXTYPES;
-
-	// On definit la table d apprentissage
-	table.resize(maxPeers);
-	for(int i=0; i<maxQueries; i++){
-		table[i].resize(maxQueries);
-		for(int j=0; j<maxPeers; j++){
-			table[i][j]=0;
-			}
-	}
-
-	srand(time(NULL));
-
+	queriesSimilarity[0] = 5; //  0 1 0 1
+	queriesSimilarity[1] = 6; //  0 1 1 0
+	queriesSimilarity[2] = 8; //  1 0 0 0
+	queriesSimilarity[5] = 0; //  0 0 0 0
+	queriesSimilarity[3] = 3; //  0 0 1 1
+	queriesSimilarity[4] = 13; // 1 1 0 1
 }
-
-TableRARE::~TableRARE() {
-	//delete [] table;
-}
-
-void TableRARE::initialize()
-{
-	/*ready = par("ready");
-	maxPeers = par("maxPeers");
-*/
-}
-
-// Une methode qui prend en entree l'ID dans le reseau et qui donne en sortie un ID logique (local)
-int TableRARE::IDnettoIDlocal(int IDnet)
-{
-
-}
-
-
-void TableRARE::UpdateTable(int QueryId,int PeerId)
-{
-	// On incrémente la valeur
-	table[QueryId][PeerId]++;
-}
-
 
 // On definit la methode qui permet de trouver la requete la plus proche d une autre
-int TableRARE::QueryRelaxation(int QueryId) {
-	int newQueryId;
-	int Somme, Max = -1;
+int TableRARE::QueryRelaxation(int queryId) {
+//	cout <<"[TableRARE]::"<< __FUNCTION__ <<endl;
+
+	if(queriesSimilarity.find(queryId) == queriesSimilarity.end())
+		return queryId;
+
+	uint64_t myQueryIdNumber = (*queriesSimilarity.find(queryId)).second;
+	uint64_t lastQueryNumber = 0;
+	uint64_t lastQueryId = queryId;
 
 	// On cherche la requête qui a le plus de types en communs avec la requete courante
-	for(int i=0; i<maxQueries; i++) {
-		for(int j=0; j<maxTypes; j++) {
-			Somme = Queries[QueryId][j]*Queries[i][j];
-			if(Max < Somme) {
-				newQueryId = j;
-			}
+	QueriesSimilarity_t::iterator it;
+	for(it = queriesSimilarity.begin(); it !=  queriesSimilarity.end(); ++it){
+		int anotherQueryId = (*it).first;
+		uint16_t anotherQueryNumber = (*it).second;
+		if(anotherQueryId == queryId) continue;
+
+		// TODO : Tu compare les mauvaises valeurs
+		if(bitSum(myQueryIdNumber & anotherQueryNumber ) > bitSum(myQueryIdNumber & lastQueryNumber)){
+			lastQueryNumber = anotherQueryNumber;
+			lastQueryId = (*it).first;
+			cout << " " <<(*it).first << "=" << bitSum(myQueryIdNumber & anotherQueryNumber ) << " ,";
 		}
 	}
-	return newQueryId;
+
+	return lastQueryId;
 }
 
+// Increase the similarity between 2 queries in the query similarity map
+void TableRARE::increaseSimilarity(int queryId1, int queryId2){
+	if((queriesSimilarity.find(queryId1) == queriesSimilarity.end())
+			|| (queriesSimilarity.find(queryId2) == queriesSimilarity.end()))
+		return;
+	uint64_t Q1 = (*queriesSimilarity.find(queryId1)).second;
+	uint64_t Q2 = (*queriesSimilarity.find(queryId2)).second;
 
-//On définit tout d'abord une méthode qui renvoit un pair pertinent
-int TableRARE::LearningPeerSelection(int QueryId){
-
-	int i=0, IdPeer=-1;
-	int Max = table[QueryId][0];
-
-	// On parcourt la table jusqu'à trouver le pair le plus pertinent
-	// On choisit une comparaison stricte afin de choisir le minimum des id
-	// dans le cas de choix multiples (le plus proche au niveau routage)
-	while(i<maxPeers){
-		if(table[QueryId][i] > Max){
-		   Max = table[QueryId][i];
-		   IdPeer = i;
-		}
-		i++;
+	// Find the position there is no similarity on every body
+	uint64_t pos = 0;
+	QueriesSimilarity_t::iterator it;
+	for(it = queriesSimilarity.begin(); it !=  queriesSimilarity.end(); ++it){
+		pos |= (*it).second;
 	}
+	if(pos == 0) return;
+	assert(pos < (pos + 1 ));  // Check if the position has already exceed 2exp64-1
 
-	// Dans le cas ou il n'y a pas de pairs pertinents
-	// On cherche la requete précédente la plus proche de la requête courante
-	// et on itère le processus
-	if(IdPeer == -1) {
-		int newQueryId;
-		newQueryId = QueryRelaxation(QueryId);
-		if(newQueryId!=QueryId){
-		IdPeer = LearningPeerSelection(newQueryId);
-		}
-	}
+	pos += 1;
 
-
-	// Sinon on passe a la selection aleatoire
-	if(IdPeer == -1) {
-			IdPeer = (int)((double)rand() / ((double)RAND_MAX + 1) * 3);
-			printf("--> On passe a la selection aleatoire \n");
-		}
-
-	return IdPeer;
+	// Set the must significant bit to 1 on both Q1 and Q2
+	Q1 |= pos;
+	Q2 |= pos;
+	// Put them back in the map
+	queriesSimilarity[queryId1] = Q1;
+	queriesSimilarity[queryId2] = Q2;
 }
 
-
-/*
-//On définit une méthode qui renvoit une liste de n pairs pertinents
-int* TableRare::LearningPeerSelection(int QueryId, int n){
-
-	int *IdPeers;
-
-	if (n<maxEntry) {
-		int i=1, IdPeer;
-		int Max = table[QueryId][0];
-		vector<int> temp;
-		temp.resize(maxEntry);
-
-		// On copie le tableau a l indice QueryId
-		for(int j = 0; j < 0; j++) {
-			temp.at(j)=table[QueryId][0];
-		}
-
-
+// Return the sum of bits in number
+int TableRARE::bitSum(uint64_t number){
+	int sum = 0;
+	while(number != 0){
+		sum += number % 2;
+		number = number >> 1;
 	}
-	else
-	{
-		// On renvoit un tableau vide
-		IdPeers = NULL;
-	}
-
-
-
-	return IdPeer;
+	return sum;
 }
-*/
-
 
 void TableRARE::toString(){
-	/*EV << "[TableRARE] Hello, I am ready ? " << ready
-	<<" ; max peers :" << maxPeers << endl;
-	*/
+	cout << "[TableRARE] Hello, I am ready ? " << ready << endl;
+
+	QueriesSimilarity_t::iterator it;
+	for(it = queriesSimilarity.begin(); it !=  queriesSimilarity.end(); ++it){
+		cout << "" << (*it).first << "";
+		cout << " is close to " << QueryRelaxation((*it).first)
+		<< endl;
+	}
+
+
+
 }

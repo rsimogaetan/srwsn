@@ -61,6 +61,12 @@ class INET_API SR : public QueueBase
 	double LAST_ALERT_ABSOLUTE_TIME; // The absolute time of the last alert
 	uint16_t TIME_BETWEEN_ALERTS;  // The minimum difference bettween alerts timestamps
 
+	uint32_t LIVETIME;  // An event must not be relevant after this amount of time
+	uint32_t NB_EVENT_IN_LIVETIME; // Maximum number of events in one livetime
+	uint32_t EVENT_MAX_LIVETIME; // Time after which another event can be thrown
+	uint32_t currentRequestTimeStamp; // The timestamp of the current request on the network
+	uint64_t generatorBitmap;  // A bitmap used to know in which time slot I can generate a request
+
 	cMessage *selfInitializationMsg;  // Message to send for self initialization
 	cMessage *internalAlertMsg;      // Message to throw when an internal anomaly is detected
 	cMessage *falseAlertTimeoutMsg;  // Message to schedule as timeout for false alert
@@ -68,6 +74,7 @@ class INET_API SR : public QueueBase
 
 	static uint16_t numberSensorNotKnown; // The number of sensors not known in the network yet
 	static uint16_t numberSensorInNetwork; // The total number of connected sensor in the network
+	static bool iCanSendRequest;   // To know if I can send a request now. Only one request at the time on the network
   public:
     SR() {};
 

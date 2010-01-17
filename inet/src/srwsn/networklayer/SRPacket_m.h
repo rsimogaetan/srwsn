@@ -72,6 +72,7 @@ enum SRMsg {
  *     uint16_t alertTimeStamp;
  *     BloomFilter bloom;
  *     uint16_t hopCount;
+ *     uint32_t myTimestamp;
  * }
  * </pre>
  */
@@ -88,6 +89,7 @@ class SRPacket : public cPacket
     uint16_t alertTimeStamp_var;
     BloomFilter bloom_var;
     uint16_t hopCount_var;
+    uint32_t myTimestamp_var;
 
     // protected and unimplemented operator==(), to prevent accidental usage
     bool operator==(const SRPacket&);
@@ -125,6 +127,8 @@ class SRPacket : public cPacket
     virtual void setBloom(const BloomFilter& bloom_var);
     virtual uint16_t getHopCount() const;
     virtual void setHopCount(uint16_t hopCount_var);
+    virtual uint32_t getMyTimestamp() const;
+    virtual void setMyTimestamp(uint32_t myTimestamp_var);
 };
 
 inline void doPacking(cCommBuffer *b, SRPacket& obj) {obj.parsimPack(b);}
