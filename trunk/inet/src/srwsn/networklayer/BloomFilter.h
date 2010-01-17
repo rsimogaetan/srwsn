@@ -7,11 +7,12 @@
 
 // The type of the sensor
 enum SensoType {
-    SENSOR_TEMPERATURE = 0,
-    SENSOR_PRESSURE  = 1,
-    SENSOR_SONG  = 2,
-    SENSOR_LIGTH  = 3,
-    SENSOR_HUMIDITY = 4
+    SENSOR_HUMIDITY = 0,
+    SENSOR_LIGTH  = 1,
+    SENSOR_PRESSURE  = 2,
+	SENSOR_SONG  = 3,
+    SENSOR_TEMPERATURE = 4,
+    SENSOR_SINK = 5
 };
 
 typedef unsigned int (*hashfunc_t)(const char *);

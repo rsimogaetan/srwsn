@@ -54,7 +54,8 @@ void SR::initialize()
     MAX_ALERT_LIVETIME = 44640; // An alert is relevant during one month
     MAX_ENTRY_RARE = 256;  // Number of row allocated for alerts in the tableRARE
     FALSE_ALERT_TIMEOUT = 2;  // The declare a false alert after 2 minutes
-    LAST_ALERT_TIMESTAMP = 0; // For now there are no alert
+    //LAST_ALERT_ABSOLUTE_TIME = (double)simTime();
+    //LAST_ALERT_TIMESTAMP = LAST_ALERT_ABSOLUTE_TIME % MAX_ALERT_LIVETIME; // For now there are no alert
     // The difference bettween alerts timestamps
     // must be higher than the alert maximum livetime divided by the
     // the space required to store alerts
@@ -140,26 +141,27 @@ void SR::handleMessage(cMessage *msg)
 }
 
 // Send the SRPacket to the destination node after some time
-void SR::scheduleMsgToSendNic(MACAddress destMACAddress, SRPacket * srPacket, uint16_t delayMin){
+void SR::scheduleMsgToSendNic(SRPacket * srPacket, uint16_t delayMin){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 
 	srPacket->setSrcMACAddress(myMACAddress);
 
     // add control info with MAC address
     Ieee802Ctrl *controlInfo = new Ieee802Ctrl();
-    controlInfo->setDest(destMACAddress);
+    controlInfo->setDest(srPacket->getDestMACAddress());
     srPacket->setControlInfo(controlInfo);
 
     // TODO : Maybe we will use doublerand() from omnetpp.h
 	double randomTime = (rand() % 10) + 1.0 + (double)delayMin;
-    EV << "     Scheduling to send the message in "<< randomTime << " seconds." <<endl;
+    EV << "     Scheduling to send the message in "<< randomTime << " seconds. ";
     scheduleAt(simTime()+randomTime,srPacket);
+    EV  <<"src: " << myMACAddress << ", dest: " << srPacket->getDestMACAddress() <<endl;
 }
 
 // Add a neighbor
 void SR::addNeighbor(MACAddress neighborMACAddress, uint16_t neighborID,BloomFilter neighborBloom){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
-	bt->AddFilter(&neighborBloom,neighborMACAddress);
+	bt->AddFilter(neighborBloom,neighborMACAddress);
 	addNeighbor(neighborMACAddress,neighborID);
 }
 
@@ -174,21 +176,35 @@ void SR::addNeighbor(MACAddress neighborMACAddress, uint16_t neighborID){
 bool SR::isAlertAllowed(){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 	// For now, just return true;
-	return true;
 	/*
-	 * TODO : implement this function
-	uint16_t currentAlertLiveTime = simTime() % MAX_ALERT_LIVETIME;
-	if((currentAlertLiveTime - LAST_ALERT_TIMESTAMP)%TIME_BETWEEN_ALERTS == 0)
-		return;
-	LAST_ALERT_TIMESTAMP = 0; // For now there are no alert
-	TIME_BETWEEN_ALERTS = MAX_ALERT_LIVETIME / MAX_ENTRY_RARE;
-	*/
+	double currentAbsoluteTime = simTime();
+	uint16_t timeInCurrentAlertLiveTime = currentAbsoluteTime % MAX_ALERT_LIVETIME;
+	LAST_ALERT_TIMESTAMP = LAST_ALERT_ABSOLUTE_TIME % MAX_ALERT_LIVETIME;
+
+	if((LAST_ALERT_TIMESTAMP/TIME_BETWEEN_ALERTS) != (timeInCurrentAlertLiveTime/TIME_BETWEEN_ALERTS))
+		return true;
+
+	if((LAST_ALERT_ABSOLUTE_TIME/MAX_ALERT_LIVETIME) != (currentAbsoluteTime/MAX_ALERT_LIVETIME))
+		return true;
+*/
+	return false;
 }
 
 // Notify all my neighbor of an anomaly I detected
 void SR::broadcastAlert(){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 	// TODO : implement this function
+
+    // Create and send my alert packet
+    SRPacket *alert = new SRPacket("ALERT");
+    alert->setId(myID);
+    alert->setMsgType(MSG_ALERT);
+    alert->setAlertTimeStamp(LAST_ALERT_TIMESTAMP);
+    alert->setAmIAlertGenerator(true);
+    alert->setHopCount(0);
+    alert->setQueryType(Q_REQUEST);
+    alert->setDestMACAddress(MACAddress::BROADCAST_ADDRESS);
+//    scheduleMsgToSendNic(alert,10);
 }
 
 // Return true if the neighbor alert timestamp is close enough to ours
@@ -318,8 +334,8 @@ void SR::handleSelfMsg(cMessage *msg)
 		// I am not known yet, so I increase the number of sensors not know in the network
 		numberSensorNotKnown++;
 		numberSensorInNetwork++;
-		EV << "     numberSensorNotKnown = " <<numberSensorNotKnown << ", numberSensorInNetwork="
-			<< numberSensorInNetwork <<endl;
+		EV << "     numberSensorNotKnown = " <<numberSensorNotKnown
+			<< ", numberSensorInNetwork=" << numberSensorInNetwork <<endl;
 
 		// Each simple sensor must select what type he is
 		bt->selectRandomType();
@@ -361,6 +377,11 @@ void SR::handleInternalAlertMsg(cMessage *msg){
 	// If it is allowed :
 	if(!isAlertAllowed())return;
 
+	/*
+	// I can throw this alert
+	LAST_ALERT_ABSOLUTE_TIME = simTime();
+	LAST_ALERT_TIMESTAMP = LAST_ALERT_ABSOLUTE_TIME % MAX_ALERT_LIVETIME;
+*/
 	// I tell my neighbors G=0
 	broadcastAlert();
 	// I set myself in alert status
@@ -418,7 +439,6 @@ void SR::handleSRMsg(SRPacket *msg)
 // Handle discovery message coming from the network
 void SR::handleNicDiscoveryMsg(SRPacket *msg){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
-	// TODO : the discovery part is not well yet.
 
 	// Who sent me this discovery message ?
 	MACAddress srcMACAddress = msg->getSrcMACAddress();
@@ -448,7 +468,8 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 			    sr->setId(myID);
 			    sr->setMsgType(MSG_DISCOVERY);
 			    sr->setBloom(bt->GetBloomPerso());
-			    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,10);
+			    sr->setDestMACAddress(MACAddress::BROADCAST_ADDRESS);
+			    scheduleMsgToSendNic(sr,10);
 
 				hasSentAdvertMsg = true;
 
@@ -473,7 +494,8 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 		    sr->setMsgType(MSG_DISCOVERY);
 		    sr->setQueryType(Q_REQUEST);
 		    sr->setBloom(bt->GetBloomPerso());
-		    scheduleMsgToSendNic(srcMACAddress,sr,0);
+		    sr->setDestMACAddress(srcMACAddress);
+		    scheduleMsgToSendNic(sr,0);
 
 		    firstSinkMsg = false;
 		}
@@ -504,7 +526,8 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 			    sr->setId(myID);
 			    sr->setMsgType(MSG_DISCOVERY);
 			    sr->setBloom(bt->GetBloomPerso());
-			    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,10*iDBuilder->getSinkDistance());
+			    sr->setDestMACAddress(MACAddress::BROADCAST_ADDRESS);
+			    scheduleMsgToSendNic(sr,10*iDBuilder->getSinkDistance());
 
 				hasSentAdvertMsg = true;
 
@@ -563,7 +586,8 @@ void SR::handleNicAlertMsg(SRPacket *alertMsg){
 	// Find the next hop of this message
 	// TODO : the next hop should be a node, not a broadcast Address (TableRARE)
 	MACAddress nextHop = MACAddress::BROADCAST_ADDRESS;
-	scheduleMsgToSendNic(nextHop,alertMsg,0);
+	alertMsg->setDestMACAddress(nextHop);
+	scheduleMsgToSendNic(alertMsg,0);
 }
 
 // Handle normal messages coming from the network
@@ -573,134 +597,135 @@ void SR::handleNicNormalMsg(SRPacket *message){
 	// if (message->getMsgType() == MSG_NORMAL)
 
 	//*******************************Fonctionnement normal*****************************************//
-	// Je crée mon message avant la fonction si je veux envoyer un message avec msgType à MSG_NORMAL, queryType à Q_REQUEST et QueryId rempli et le reste des champs non rempli!
+	// Je crée mon message avant la fonction si je veux envoyer un message avec Id à myID, msgType à MSG_NORMAL, queryType à Q_REQUEST et QueryId rempli et le reste des champs non rempli!
 	// Rappel: SRPacket *message = new SRPacket("MA REQUETE");
 
 
 	// Je définis le délai d'attente
 	int delayMin = 10;
+	// 2eme Cas: Je reçoit une requête
+	if ( (message->getQueryType() == Q_REQUEST) ) {  // C'est sur que c'est pas moi qui ai créé cette requête
+		EV << "       I just received a request for " << message->getQueryId() <<endl;
 
-	// 1er Cas: Je veux envoyer une requête
-	if ( (message->getQueryType() == Q_REQUEST) && (message->getId() == NULL) ) { // Le champs ID n'est pas encore rempli si le message est tout juste créer
-
-		// On initialise le peer qui a potentiellement une réponse à -1 (il n'existe pas)
-		MACAddress PeerWithAnswer = NULL;
-
-		// Je regarde d'abord dans mes filtres de Bloom si mes voisins ont la réponse
-		// Attention dans l'envoie d'une requête, je demande parfois ce que moi même je détecte -> true
-		PeerWithAnswer = bt->Get(message->getQueryId(),true);
-
-			// Si PeerWithAnswer est > 0 alors un voisin direct a l'information et je lui envoie ma requête
-			if (PeerWithAnswer != NULL) {
-				// Je remplis les champs du paquet
-				message->setId(myID);    // Je remplis l'ID source qui ne change pas
-				message->setSrcMACAddress(myMACAddress);
-				message->setDestMACAddress(PeerWithAnswer);
-
-				// J'envoie mon message
-				scheduleMsgToSendNic(PeerWithAnswer,message,delayMin);
-
-			}
-
-			// Sinon si PeerWithAnswer est de -1 alors aucun de voisin n'a l'information et je passe à l'étape supérieur, la table de rare
-			else {
-				// La table de Rare me donne un peer vers qui envoyer la requête, au pire c'est un peer aléatoire
-				PeerWithAnswer = tr->LearningPeerSelection(message->getQueryId());
-
-				// J'envoie ma requête au peer séléctionné
-				// Je remplis les champs
-				message->setId(myID);              // Je remplis l'ID source qui ne change pas
-				message->setSrcMACAddress(myMACAddress);
-				message->setDestMACAddress(PeerWithAnswer);
-
-				// J'envoie le message
-				scheduleMsgToSendNic(PeerWithAnswer,message,delayMin);
-
-			}
-	}
-
-	// 2eme Cas: Je dois répondre à une requête
-	if ( (message->getQueryType() == Q_REQUEST) && (message->getId() != NULL) ) {
-
-		// On stocke la personne qui a envoye la requete soit le couplet <prevMAC,IDsource>
+		// On stocke la personne qui a envoye la requete soit le couplet <IDsource, prevMAC>
 		// pour utiliser cette information lors de la réception de la réponse
 		RecordTable[message->getId()] = message->getSrcMACAddress();
 
 		// On initialise le peer qui a potentiellement une réponse à -1, ce sera peut-etre moi
-		MACAddress PeerWithAnswer = NULL;
+		MACAddress PeerWithAnswer = MACAddress::UNSPECIFIED_ADDRESS;
 
 		// Je regarde d'abord dans mes filtres de Bloom si moi ou mes voisins ont la réponse
-		PeerWithAnswer = bt->Get(message->getQueryId(),false);
+		PeerWithAnswer = bt->GetNextHop(message->getQueryId(),false,myMACAddress);
 
-			// Si PeerWithAnswer est de 0 alors je répond à la requête et j'envoie le message de réponse
-			if ((PeerWithAnswer == 00-00-00-00-00-00)) {
+		// Si PeerWithAnswer est de 0 alors je répond à la requête et j'envoie le message de réponse
+		if ((PeerWithAnswer.equals(myMACAddress))) {
+			EV << "         And I can respond to that request : "<< message->getQueryId() <<endl;
 
-				// Je crée le message de réponse et rempli les champs puis l'envoie
-				SRPacket *messageReponse = new SRPacket("LA REPONSE");
-				messageReponse->setMsgType(MSG_NORMAL); // C'est un message normal
-				messageReponse->setQueryType(Q_REPLY); // C'est une reponse
-				messageReponse->setId(message->getId()); // Je met l'ID de celui qui a besion de la réponse pour qu'il se reconnaisse
-				messageReponse->setSrcMACAddress(myMACAddress);
-				messageReponse->setDestMACAddress(PeerWithAnswer); // J'envoie en routage classique à l'@MAC correspondant à l'ID 													du créateur de la requête
-				messageReponse->setQueryId(message->getQueryId());
-
-				// Et je rajoute le champs ou je met la valeur de la réponse!!!!!!!!!!
-				// Selon si c'est une valeur, ou une erreur ou une alerte, je remplis les champs correspondant
-
-				scheduleMsgToSendNic(idToMACAddress(message->getId()),messageReponse,delayMin);
-
+			// Je crée le message de réponse et rempli les champs puis l'envoie
+			SRPacket *messageReponse = new SRPacket("LA REPONSE");
+			messageReponse->setMsgType(MSG_NORMAL); // C'est un message normal
+			messageReponse->setQueryType(Q_REPLY); // C'est une reponse
+			messageReponse->setId(message->getId()); // Je met l'ID de celui qui a besion de la réponse pour qu'il se reconnaisse
+			messageReponse->setSrcMACAddress(myMACAddress);
+			// TODO : Je ne comprend pas bien la ligne suivante
+			// Si j'était moi même l'émetteur de la requête
+			MACAddress nextHop;
+			if(message->getId() == myID){
+				// Je m'envois le message par le réseau pour utiliser la méthode qu'il faut
+				nextHop = myMACAddress;
+			}
+			// Je vais utilisé le routage classique pour le retour de la réponse
+			else{
+				nextHop = RecordTable[message->getId()];
 			}
 
-			// Sinon si PeerWithAnswer est > 0 alors un voisin direct a l'information et je lui envoie ma requête
-			else if (PeerWithAnswer != NULL) {
+			messageReponse->setDestMACAddress(nextHop); // J'envoie en routage classique à l'@MAC correspondant à l'ID du créateur de la requête
+			messageReponse->setQueryId(message->getQueryId());
 
-				message->setSrcMACAddress(myMACAddress);
-				message->setDestMACAddress(PeerWithAnswer);
-				scheduleMsgToSendNic(PeerWithAnswer,message,delayMin);
+			// Et je rajoute le champs ou je met la valeur de la réponse!!!!!!!!!!
+			// Selon si c'est une valeur, ou une erreur ou une alerte, je remplis les champs correspondant
 
-			}
+			scheduleMsgToSendNic(messageReponse,delayMin);
 
-			// Sinon si PeerWithAnswer est NULL alors aucun de voisin n'a l'information et je passe à l'étape supérieur, la table de rare
-			else {
-				// La table de Rare me donne un peer vers qui envoyer la requête, au pire c'est un peer aléatoire
-				PeerWithAnswer = tr->LearningPeerSelection(message->getQueryId());
+		}
 
+		// Sinon si PeerWithAnswer est > 0 alors un voisin direct a l'information et je lui envoie ma requête
+		// Ce voisin ne doit pas être celui qui m'a précédament envoyer la requête
+		else if ((!PeerWithAnswer.isUnspecified()) && (!PeerWithAnswer.equals(message->getSrcMACAddress()))) {
+			EV << "         My neighbor can respond to that request : "<< message->getQueryId() <<endl;
+
+			// Seul les adresses MAC ont besoin d'être modifiées
+			message->setSrcMACAddress(myMACAddress);
+			message->setDestMACAddress(PeerWithAnswer);
+			message->setDestMACAddress(PeerWithAnswer);
+			scheduleMsgToSendNic(message,delayMin);
+		}
+
+		// Sinon si PeerWithAnswer est NULL alors aucun de voisin n'a l'information et je passe à l'étape supérieur, la table de rare
+		else {
+			EV << "       I know nobody who can respond to that request : "<< message->getQueryId() <<endl;
+
+			message->setSrcMACAddress(myMACAddress);
+
+			// La table de Rare me donne un peer vers qui envoyer la requête, au pire c'est un peer aléatoire
+			PeerWithAnswer = tr->LearningPeerSelection(message->getQueryId());
+
+			// La tableRARE peut ne contenir que celui qui m'a envoyé la requête
+			// Dans ce cas là, il faut faire du flooding
+			if(PeerWithAnswer.isUnspecified()){
+				// J'envoi à tous mes voisins, excepté celui qui m'a envoyé la requête
+				NeighborList_t::iterator it;
+				for (it = neighborList.begin (); it != neighborList.end (); ++it)
+				{
+					// Pour l'instant, on n'envois qu'au premier voisin différent de l'emetteur de la requête
+					if(!message->getDestMACAddress().equals((*it).second)){
+						// J'envoie ma requête au peer séléctionné
+						message->setDestMACAddress((*it).second);
+						scheduleMsgToSendNic(message,delayMin);
+						break;
+					}
+				}
+			}else{
+				// La table RARE à trouvé quelque à qui envoyer la requête
 				// J'envoie ma requête au peer séléctionné
-				message->setSrcMACAddress(myMACAddress);
 				message->setDestMACAddress(PeerWithAnswer);
-				scheduleMsgToSendNic(PeerWithAnswer,message,delayMin);
+				scheduleMsgToSendNic(message,delayMin);
 			}
+		}
 
 	}
 
 	// 3eme Cas: Si je forward une réponse
-	if ( (message->getQueryType() == Q_REPLY) && (message->getId() != myID) ) {
-
-		// On recupere le nextMAC grace a la route enregistree dans RecordTable
-		MACAddress nextPeerMAC = RecordTable[message->getId()];
+	else if ( (message->getQueryType() == Q_REPLY) && (message->getId() != myID) ) {
+		EV << "         I need to forward back this response : "<< message->getQueryId() << " to " << message->getId() <<endl;
 
 		// J'enregistre dans la table de rare le peer qui apporte la réponse
 		tr->UpdateTable(message->getQueryId(),message->getSrcMACAddress());
 
+		// On recupere le nextMAC grace a la route enregistree dans RecordTable
+		MACAddress nextPeerMAC = RecordTable[message->getId()];
+		EV << "     I can do it through " << nextPeerMAC.str() << endl;
+
 		// Je transfert la réponse vers le bon peer (je change les champs nécessaire et je renvoie)
 		message->setSrcMACAddress(myMACAddress);
 		message->setDestMACAddress(nextPeerMAC);// Le peer qui va nous permettre d'atteindre le peer qui veut la réponse));
-		scheduleMsgToSendNic(nextPeerMAC,message,delayMin);
+		scheduleMsgToSendNic(message,delayMin);
 
 	}
 
 	// 4eme Cas: Si je recois la réponse à la question que j'avais posé
-	if ( (message->getQueryType() == Q_REPLY) && (message->getId() == myID) ) {
+	else if ( (message->getQueryType() == Q_REPLY) && (message->getId() == myID) ) {
+		EV << "         COOL, I got the response to my request : "<< message->getQueryId() <<endl;
 
 		// Je met à jour la table de RARE
 		tr->UpdateTable(message->getQueryId(),message->getSrcMACAddress());
+	    // Message arrived
+	    uint16_t hopcount = message->getHopCount();
+	    EV << "Message " << message << " arrived after " << hopcount << " hops.\n";
+	    bubble("ARRIVED, starting new one!");
 	}
 
-
-    // Message arrived
-    uint16_t hopcount = message->getHopCount();
-    EV << "Message " << message << " arrived after " << hopcount << " hops.\n";
-    bubble("ARRIVED, starting new one!");
+	/*
 
     // update statistics.
     hopCountVector.record((int)hopcount);
@@ -708,21 +733,58 @@ void SR::handleNicNormalMsg(SRPacket *message){
 
     // Send the message right back to the sender
     message->setHopCount(message->getHopCount()+1);
-	scheduleMsgToSendNic(message->getSrcMACAddress(),message,0);
-
+	scheduleMsgToSendNic(message,0);
+*/
 }
 
 // Generate a random request and send it in the network
 void SR::generaterRandomRequest(){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 	// TODO: generate a random request
-    // Create an hello world packet
-    SRPacket *sr = new SRPacket("NORMAL-REQUEST");
-    sr->setId(myID);
-    sr->setMsgType(MSG_NORMAL);
-    sr->setQueryType(Q_REQUEST);
-    sr->setHopCount(0);
-    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,0);
+
+	// On initialise le peer qui a potentiellement une réponse à -1 (il n'existe pas)
+	MACAddress PeerWithAnswer = MACAddress::UNSPECIFIED_ADDRESS;
+
+	// Create an normal request packet
+    SRPacket *myRequest = new SRPacket("NORMAL-REQUEST");
+    myRequest->setId(myID);
+    myRequest->setMsgType(MSG_NORMAL);
+    myRequest->setQueryType(Q_REQUEST);
+    myRequest->setQueryId(SENSOR_HUMIDITY);
+    myRequest->setHopCount(0);
+
+	// 1er Cas: Je veux envoyer une requête
+
+	// Je regarde d'abord dans mes filtres de Bloom si mes voisins ont la réponse
+	// Attention dans l'envoie d'une requête, je demande parfois ce que moi même je détecte -> true
+	PeerWithAnswer = bt->GetNextHop(myRequest->getQueryId(),true,myMACAddress);
+
+
+	// Sinon si PeerWithAnswer est de -1 alors aucun de voisin n'a l'information et je passe à l'étape supérieur, la table de rare
+	if (PeerWithAnswer.isUnspecified()) {
+		// La table de Rare me donne un peer vers qui envoyer la requête, au pire c'est un peer aléatoire
+		PeerWithAnswer = tr->LearningPeerSelection(myRequest->getQueryId());
+
+		// Si ma tableRARE est vide pour l'instant
+		// On fait du broadcast
+		if(PeerWithAnswer.isUnspecified())
+			PeerWithAnswer = MACAddress::BROADCAST_ADDRESS;
+	}
+
+	// I must have  a neighbor to whom I will send the request
+	ASSERT(!PeerWithAnswer.isUnspecified());
+
+	// J'envoie ma requête au peer séléctionné
+	// Je remplis les champs
+	myRequest->setSrcMACAddress(myMACAddress);
+	myRequest->setDestMACAddress(PeerWithAnswer);
+
+	EV <<"      I want to send the request. I am Looking for : " << myRequest->getQueryId()
+		<< ". I Will send my request through " << PeerWithAnswer <<endl;
+
+	// J'envoie le message
+	scheduleMsgToSendNic(myRequest,5);
+
 }
 
 //######################## SINK PART #####################################
@@ -759,6 +821,12 @@ void SR::SINK_handleSelfMsg(cMessage *msg){
 		myMACAddress = my_ie->getMacAddress();
 	    ASSERT(!myMACAddress.isUnspecified());
 
+	    // The sink has to update its bloom filter
+	    // He must set that he is the sink
+	    bt->AddToBloomPerso("SINK");
+	    // and update his display to ink
+	    bt->updateDisplay("srwsn/sink");
+
 		// If I am the sink, I should start the simulation
 		// SinkDistance=0, Area=0
 		iDBuilder->setMACExt(myMACAddress.str());
@@ -771,14 +839,9 @@ void SR::SINK_handleSelfMsg(cMessage *msg){
 	    sr->setMsgType(MSG_DISCOVERY);
 	    sr->setQueryType(Q_REQUEST);
 	    sr->setBloom(bt->GetBloomPerso());
-	    scheduleMsgToSendNic(MACAddress::BROADCAST_ADDRESS,sr,0);
+	    sr->setDestMACAddress(MACAddress::BROADCAST_ADDRESS);
+	    scheduleMsgToSendNic(sr,5);
 	    sensorStatus = STATUS_NORMAL;
-
-	    // The sink has to update its bloom filter
-	    // He must set that he is the sink
-	    bt->AddToBloomPerso("SINK");
-	    // and update his display to ink
-	    bt->updateDisplay("srwsn/sink");
 
     }else if (msg == internalAlertMsg)
     {
@@ -845,7 +908,8 @@ void SR::SINK_handleNicDiscoveryMsg(SRPacket *msg){
 	    sr->setId(myID);
 	    sr->setMsgType(MSG_DISCOVERY);
 	    sr->setQueryType(Q_REPLY);
-	    scheduleMsgToSendNic(srcMACAddress,sr,10);
+	    sr->setDestMACAddress(srcMACAddress);
+	    scheduleMsgToSendNic(sr,10);
 
 		break;
 	}

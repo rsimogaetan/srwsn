@@ -31,17 +31,11 @@ unsigned int sdbm_hash(const char *key)
 
 void BloomTable::initialize()
 {
+	EV <<"[BloomTable]::"<< __FUNCTION__ <<endl;
 	tailleFiltre = par("tailleFiltre");
 
 	// On instancie son propre filtre de bloom
 	BloomPerso = new BloomFilter((size_t) tailleFiltre, 2, sax_hash, sdbm_hash);
-
-	// On instancie le tableau des filtres de blooms voisin
-	NeighborsTable.resize(0);
-
-	// On instancie le tableau de conversion d'ID (MAC<->local)
-	IDtoMACtable[0] = 0;
-	IDlocalmax = 1;                // On commence à 1 car 0 représente le noeud lui même
 
 	// On remplit le tableau de traduction de requete int QueryId <-> char * Query
 	string temperature="TEMPERATURE", pression = "PRESSION", son = "SON", lumiere = "LUMIERE", humidite = "HUMIDITE", puit = "PUIT";
@@ -59,93 +53,79 @@ void BloomTable::initialize()
 	QueryTranslation2[SENSOR_TEMPERATURE] = "TEMPERATURE";
 }
 
-
-
-// Conversion MAC -> IDlocal
-int BloomTable::GetIDlocal (MACAddress MAC){
-
-	// On alloue une correspondance supplementaire
-	IDtoMACtable[IDlocalmax]=MAC;
-
-	IDlocalmax++;
-
-	return IDlocalmax-1;
-}
-
-
 // Fonction qui permet de retourner le noeud VOISIN DIRECT qui peut repondre a la requete
 // Renvoie 0 si le capteur lui meme peut répondre à la requete
 // La variable Source permet d'indiquer si le capteur est la source du message
-MACAddress BloomTable::Get(int QueryId, bool Source)
+MACAddress BloomTable::GetNextHop(int QueryId, bool Source,MACAddress myMAC)
 {
-	int PeerIdlocal=-1;
+	EV <<"[BloomTable]::"<< __FUNCTION__ <<endl;
+	MACAddress neighborMAC;
+	BloomFilter neighborBloom;
+	//NeighborsTable[neighborMAC] = neighborBloom;
 
 	// On transforme la requete en chaine de caractere
-	const char * Query = QueryTranslation[QueryId].c_str();
+	std::string query_str = (*QueryTranslation2.find(QueryId)).second;
+	EV << "     Looking for a neighbor which does "<< query_str<<endl;
 
-	// On regarde d'abord si le capteur n'est pas la source du message
-	if (!Source) {
-		// Si le capteur peut y repondre directement
-		if (BloomPerso->Check(Query)) {
-			PeerIdlocal = 0;   // J'ai la reponse a la requete je peux y repondre
-		}
-		else {
-				// On parcourt le tableau et on cherche le premier pair qui peut repondre DIRECTEMENT a la requete
-				for (unsigned int i=0; i<NeighborsTable.size();i++){
-					if (NeighborsTable[i]->Check(Query))  {
-						PeerIdlocal = i+1;     // En effet car le 0 représente le noeud lui même
-						break;
-					}
-				}
-			}
+	// On regarde d'abord si je ne suis pas la source du message
+	// Et si je peut y repondre directement
+	if ( (!Source) && ((BloomPerso->Check(query_str)))) {
+		EV << "     OK. I do "<< query_str << " I can respond" <<endl;
+		// J'ai la reponse a la requete je peux y repondre
+		return myMAC;
 	}
 
+	EV << "    Sorry I do not do "<< query_str << endl;
 	// Sinon on est la source et dans ce cas il n'est pas nécessaire de verifier si on peut y repondre
-	else {
-		// On parcourt le tableau et on cherche le premier pair qui peut repondre DIRECTEMENT a la requete
-		for (unsigned int i=0; i<NeighborsTable.size();i++){
-			if (NeighborsTable[i]->Check(Query))  {
-				PeerIdlocal = i+1;     // En effet car le 0 représente le noeud lui même
-				break;
-			}
+	// On parcourt le tableau et on cherche le premier voisin DIRECT qui peut repondre à la requete
+	NeighborsTable_t::iterator it;
+	for (it = NeighborsTable.begin(); it != NeighborsTable.end (); ++it)
+	{
+		BloomFilter bloom = (*it).second;
+		if(bloom.Check(query_str)){
+			std::string mac_str= (*it).first;
+			size_t size = mac_str.size() + 1;
+			char * buffer = new char[ size ];
+			strncpy( buffer, mac_str.c_str(), size );
+			EV << "    But I know that "<< mac_str << " does " << query_str << endl;
+			return (*(new MACAddress(buffer)));
 		}
 	}
 
-	// On renvoie la MAC du local id
-	return IDtoMACtable[PeerIdlocal];
+	EV << "Sorry, I do not know anybody who does " << query_str << endl;
+	// On renvoie un MAC null
+	return MACAddress::UNSPECIFIED_ADDRESS;
 }
-
 
 // Fonction qui permet d'ajouter un filtre dans la table de Bloom
-void BloomTable::AddFilter(BloomFilter* BloomNeighbor, MACAddress MAC){
-	// On ajoute le propietaire du filtre dans le tableau de correspondance
-	int IDlocal = GetIDlocal(MAC);
-
-	// On alloue la mémoire pour stocker un nouveau filtre (pointeur)
-	// Il faut noter que la taille de ce vecteur vaut IDlocalmax (un fitlre de bloom par id)
-	NeighborsTable.resize(IDlocal+1);
-
+void BloomTable::AddFilter(BloomFilter neighborBloom, MACAddress neighborMAC){
+	EV <<"[BloomTable]::"<< __FUNCTION__ <<endl;
 	// On insere le nouveau filtre dans le tableau
-	NeighborsTable[IDlocal] = BloomNeighbor;
-
+	NeighborsTable[neighborMAC.str()] = neighborBloom;
 }
 
+
 int BloomTable::AddToBloomPerso(const char *info){
+	EV <<"[BloomTable]::"<< __FUNCTION__ <<endl;
 	return BloomPerso->Add(info);
 }
 
 // Print the ID of all the sensor in this BloomTable
 void BloomTable::printFilters(){
+	EV <<"[BloomTable]::"<< __FUNCTION__ <<endl;
 	//TODO: This function should print the contain of the bloomfilter of all its neighbor
-	EV << "[BloomTable] Neighbor ID : ";
-	for (unsigned int i=0; i<NeighborsTable.size();i++){
-			EV << IDtoMACtable[i] <<", ";
+	EV << "[BloomTable] Neighbor MAC : ";
+	NeighborsTable_t::iterator it;
+	for (it = NeighborsTable.begin(); it != NeighborsTable.end (); ++it)
+	{
+		EV << ((*it).first) << ", ";
 	}
 	EV << endl;
 }
 
 // Update the display of the sensor, depending on its nature
 void BloomTable::updateDisplay(std::string myIcon){
+	EV <<"[BloomTable]::"<< __FUNCTION__ <<endl;
 	// change icon displayed in Tkenv
 	cDisplayString* display_string = &getParentModule()->getDisplayString();
 	size_t size = myIcon.size() + 1;
@@ -156,9 +136,11 @@ void BloomTable::updateDisplay(std::string myIcon){
 
 // Select random type for this Bloom Filter (BloomPerso)
 void BloomTable::selectRandomType(){
+	EV <<"[BloomTable]::"<< __FUNCTION__ <<endl;
 	// Chose the type of the sensor
 	//(int)QueryTranslation2.size()
 	int param = intuniform(0,4);
+	//int param = 4;
 	QueryTranslation_t::iterator it;
 	it =  QueryTranslation2.find(param);
 	ASSERT(it != QueryTranslation2.end());
