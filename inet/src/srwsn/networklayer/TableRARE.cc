@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdlib.h>  // For rand
 #include <time.h>  // For rand
+#include <stdint.h>  // Use [u]intN_t if you need exactly N bits.
 using namespace std;
 
 
@@ -12,9 +13,10 @@ using namespace std;
 Define_Module(TableRARE);
 
 // Paramètres
+//TODO : mettre ceci dans le constructeur
 const int MAXQUERIES=6;  // Temperature, Pression, Son, Lumiere, Humidite, Puit
 const int MAXTYPES=4;    // Relation math, Feu, Intru, Pluie
-
+/*
 // On definit la table des requetes
 int Queries[MAXQUERIES][MAXTYPES]={{1,1,0,0},
 								   {1,0,0,0},
@@ -22,136 +24,185 @@ int Queries[MAXQUERIES][MAXTYPES]={{1,1,0,0},
 								   {0,1,1,0},
 								   {0,0,0,1},
 								   {0,0,0,0}}; //A definir
+								   */
 
-
-TableRARE::TableRARE(int Neighbors) {
-
-	maxPeers=Neighbors;
-	maxQueries=MAXQUERIES;
-	maxTypes=MAXTYPES;
-
-	// On definit la table d apprentissage
-	table.resize(maxPeers);
-	for(int i=0; i<maxQueries; i++){
-		table[i].resize(maxQueries);
-		for(int j=0; j<maxPeers; j++){
-			table[i][j]=0;
-			}
-	}
-
-	// On initialise l'id à 0
-	MACtoIdtable.resize(0);
-	IDlocalmax=0;
-
-	srand(time(NULL));
-
-}
-
-TableRARE::~TableRARE() {
-	//delete [] table;
-}
 
 void TableRARE::initialize()
 {
-/*	ready = par("ready");
-	maxPeers = par("maxPeers");*/
+	EV <<"[TableRARE]::"<< __FUNCTION__ <<endl;
+	// Paramètres
+	QueryRelaxationMaxRetry = par("queryRelaxationMaxRetry");
+	ready = par("ready");
+	maxQueries= par("maxQueries");
+	maxTypes= par("maxTypes");
+
+	// We hve not done any relaxation yet
+	QueryRelaxationRetryTime = 0;
+
+	queriesSimilarity[SENSOR_HUMIDITY] = 13; // 1 1 0 1
+	queriesSimilarity[SENSOR_LIGTH] = 8; // 1 0 0 0
+	queriesSimilarity[SENSOR_PRESSURE] = 3; // 0 0 1 1
+	queriesSimilarity[SENSOR_SINK] = 0; // 0 0 0 0
+	queriesSimilarity[SENSOR_SONG] = 6; // 0 1 1 0
+	queriesSimilarity[SENSOR_TEMPERATURE] = 1; // 0 0 0 1
+
+	srand(time(NULL));
 }
-
-
-// Une methode qui prend en entree la MAC et qui donne en sortie un ID logique (local)
-int TableRARE::MACtoIDlocal(MACAddress MAC){
-
-	MACtoIdtable.resize(IDlocalmax+1);
-
-	// On attribue un id local a la MAC
-	MACtoIdtable[IDlocalmax]=MAC;
-
-	// On passe a l id local libre suivant
-	IDlocalmax++;
-
-	return IDlocalmax-1;
-}
-
-
 
 void TableRARE::UpdateTable(int QueryId,MACAddress MAC)
 {
-	int IDlocal, i;
-
-	while(i<IDlocalmax) {
-		if (MACtoIdtable[IDlocal]!=MAC) {
-			IDlocal=i;
-			i=IDlocalmax;
-		}
-		i++;
+	EV <<"[TableRARE]::"<< __FUNCTION__ <<endl;
+	// If this query id does not exists yet
+	// We must create one row on the table and set this value to 1
+	if(learningTable.size() <=  (unsigned int)QueryId){
+		std::map<std::string,int> newQuery;
+		newQuery[MAC.str()] = 1;
+		learningTable.resize(QueryId+1);
+		learningTable[QueryId] = newQuery;
+		EV << "     Our neighbors " << MAC.str() << " has responded positivily to us for the first time. At him fo query " << QueryId
+		<< ". He is the first one for this  request " << QueryId << endl;
 	}
-
-	// On incrémente la valeur
-	table[QueryId][IDlocal]++;
-}
-
-
-// On definit la methode qui permet de trouver la requete la plus proche d une autre
-int TableRARE::QueryRelaxation(int QueryId) {
-	int newQueryId;
-	int Somme, Max = -1;
-
-	// On cherche la requête qui a le plus de types en communs avec la requete courante
-	for(int i=0; i<maxQueries; i++) {
-		for(int j=0; j<maxTypes; j++) {
-			Somme = Queries[QueryId][j]*Queries[i][j];
-			if(Max < Somme) {
-				newQueryId = j;
-			}
+	// The query already exists
+	// We must increase the value in the table
+	else{
+		std::map<std::string,int> mapMACInt = learningTable[QueryId];
+		std::map<std::string,int>::iterator it2;
+		it2 = mapMACInt.find(MAC.str());
+		// If this peer is already associated to this query
+		if(it2 != (mapMACInt.end())){
+			mapMACInt[MAC.str()] += 1;
+			learningTable[QueryId] = mapMACInt;
+			EV << "     "<<MAC.str() << " is a good neighbor, He has respond to " << (*it2).second + 1
+			<< "The last time was about " << QueryId << endl;
+		}else { // This peer is not associated to this query yet
+			// We set it
+			mapMACInt[MAC.str()] = 1;
+			learningTable[QueryId] = mapMACInt;
+			EV << "     Our neighbor " << MAC.str() << " has responded positivily to us for the first time. For query " << QueryId
+			<< " Along with " << mapMACInt.size()-1 << " other neighbors" << endl;
 		}
 	}
-	return newQueryId;
 }
 
 
 //On définit tout d'abord une méthode qui renvoit un pair pertinent
 MACAddress TableRARE::LearningPeerSelection(int QueryId){
+	EV <<"[TableRARE]::"<< __FUNCTION__ <<endl;
+	int Max = 0;
+	std::string mac_str = "";
 
-	int i=0, IdPeer;
-	MACAddress MACPeer=NULL;
-	int Max = table[QueryId][0];
+
+	EV << "     Looking for a neighbor which can lead me to someone which does "<< QueryId <<endl;
 
 	// On parcourt la table jusqu'à trouver le pair le plus pertinent
 	// On choisit une comparaison stricte afin de choisir le minimum des id
 	// dans le cas de choix multiples (le plus proche au niveau routage)
-	while(i<maxPeers){
-		if(table[QueryId][i] > Max){
-		   Max = table[QueryId][i];
-		   MACPeer = MACtoIdtable[i];
+	if(learningTable.size() >  (unsigned int)QueryId){
+		std::map<std::string,int> mapMACInt = learningTable[QueryId];
+		std::map<std::string,int>::iterator it;
+		for (it = mapMACInt.begin (); it != mapMACInt.end (); ++it)
+		{
+			if((*it).second > Max){
+				Max = (*it).second;
+				mac_str = (*it).first;
+			}
 		}
-		i++;
+		// Si on a trouvé une mac qui convient
+		if(mac_str.compare("")!=0){
+			EV << "   OK I think " << mac_str << " may have the response to our request." <<endl;
+			size_t size = mac_str.size() + 1;
+			char * buffer = new char[ size ];
+			strncpy( buffer, mac_str.c_str(), size );
+			return (*(new MACAddress(buffer)));
+		}
 	}
 
 	// Dans le cas ou il n'y a pas de pairs pertinents
 	// On cherche la requete précédente la plus proche de la requête courante
 	// et on itère le processus
-	if(MACPeer == NULL) {
-		int newQueryId;
-		newQueryId = QueryRelaxation(QueryId);
-		if(newQueryId!=QueryId){
-		MACPeer = LearningPeerSelection(newQueryId);
+	// The
+	int newQueryId;
+	newQueryId = QueryRelaxation(QueryId);
+	if((newQueryId!=QueryId)&&((QueryRelaxationRetryTime < QueryRelaxationMaxRetry))){
+		EV << "    I do not know anyone for sure. Nevertheless, I will expend the request to have more luck." << endl;
+		QueryRelaxationRetryTime++;
+		return LearningPeerSelection(newQueryId);
+	}
+	QueryRelaxationRetryTime = 0;
+
+	EV <<"   Not very lucky. After "<<QueryRelaxationMaxRetry<< " query expansions, I still can't find somebody. Nevertheless, I will randomly proposed somebody." << endl;
+	// Sinon on passe a la selection aleatoire
+	if(learningTable.size() > 0){
+		int randomQuery = (int) (rand() % (learningTable.size()-1)) ;
+		// On boucle tant que la ligne de requete ne contient pas de peer ( on vas sortir un jour car learningTable.size > 0)
+		while(learningTable[randomQuery].size() == 0){
+			randomQuery = (int) (rand() % (learningTable.size()-1)) ;
+		}
+		return LearningPeerSelection(randomQuery);
+	}
+
+	EV << "    Sorry, I cannot help you. You are going to have to pick a neighbor yourself." <<endl;
+	// On renvoie un MAC null
+	return MACAddress::UNSPECIFIED_ADDRESS;
+}
+
+// On definit la methode qui permet de trouver la requete la plus proche d une autre
+int TableRARE::QueryRelaxation(int queryId) {
+	EV <<"[TableRARE]::"<< __FUNCTION__ <<endl;
+
+	if(queriesSimilarity.find(queryId) == queriesSimilarity.end())
+		return queryId;
+
+	uint64_t myQueryIdNumber = (*queriesSimilarity.find(queryId)).second;
+	uint64_t lastQueryNumber = 0;
+	uint64_t lastQueryId = queryId;
+
+	// On cherche la requête qui a le plus de types en communs avec la requete courante
+	QueriesSimilarity_t::iterator it;
+	for(it = queriesSimilarity.begin(); it !=  queriesSimilarity.end(); ++it){
+		int anotherQueryId = (*it).first;
+		uint16_t anotherQueryNumber = (*it).second;
+		if(anotherQueryId == queryId) continue;
+
+		// TODO : Tu compare les mauvaises valeurs
+		if((myQueryIdNumber & anotherQueryNumber ) > (myQueryIdNumber & lastQueryNumber)){
+			lastQueryNumber = anotherQueryNumber;
+			lastQueryId = (*it).first;
 		}
 	}
 
-
-	// Sinon on passe a la selection aleatoire
-	if(IdPeer == -1) {
-			IdPeer = (int)((double)rand() / ((double)RAND_MAX + 1) * 3);
-			printf("--> On passe a la selection aleatoire \n");
-		}
-
-	return MACPeer;
+	return lastQueryId;
 }
 
+// Increase the similarity between 2 queries in the query similarity map
+void TableRARE::increaseSimilarity(int queryId1, int queryId2){
+	if((queriesSimilarity.find(queryId1) == queriesSimilarity.end())
+			|| (queriesSimilarity.find(queryId2) == queriesSimilarity.end()))
+		return;
+	uint64_t Q1 = (*queriesSimilarity.find(queryId1)).second;
+	uint64_t Q2 = (*queriesSimilarity.find(queryId2)).second;
+
+	// Find the position there is no similarity on every body
+	uint64_t pos = 0;
+	QueriesSimilarity_t::iterator it;
+	for(it = queriesSimilarity.begin(); it !=  queriesSimilarity.end(); ++it){
+		pos |= (*it).second;
+	}
+	if(pos == 0) return;
+	ASSERT(pos < (pos + 1 ));  // Check if the position has already exceed 2exp64-1
+
+	pos += 1;
+
+	// Set the must significant bit to 1 on both Q1 and Q2
+	Q1 |= pos;
+	Q2 |= pos;
+	// Put them back in the map
+	queriesSimilarity[queryId1] = Q1;
+	queriesSimilarity[queryId2] = Q2;
+}
 
 void TableRARE::toString(){
 	EV << "[TableRARE] Hello, I am ready ? " << ready
-	<<" ; max peers :" << maxPeers << endl;
+	<<endl;
 
 }
-

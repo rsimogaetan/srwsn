@@ -58,6 +58,7 @@ class INET_API SR : public QueueBase
 	uint16_t MAX_ENTRY_RARE; // Maximum number of entry in the tableRARE allocated for alerts
 	uint16_t FALSE_ALERT_TIMEOUT; // Time after which this alert become a false alert
 	uint16_t LAST_ALERT_TIMESTAMP; // Contains the timestamp of the last alert
+	double LAST_ALERT_ABSOLUTE_TIME; // The absolute time of the last alert
 	uint16_t TIME_BETWEEN_ALERTS;  // The minimum difference bettween alerts timestamps
 
 	cMessage *selfInitializationMsg;  // Message to send for self initialization
@@ -85,7 +86,7 @@ class INET_API SR : public QueueBase
     virtual void handleMessage(cMessage *msg);
 
     // Send the SRPacket to the destination node after some time
-    virtual void scheduleMsgToSendNic(MACAddress destMACAddress, SRPacket * srPacket,uint16_t delayMin);
+    virtual void scheduleMsgToSendNic( SRPacket * srPacket,uint16_t delayMin);
 
 	// Add a neighbor
     virtual void addNeighbor(MACAddress neighborMACAddress, uint16_t neighborID);
