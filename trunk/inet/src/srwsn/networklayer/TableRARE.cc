@@ -1,6 +1,7 @@
 #include <omnetpp.h>
 #include "TableRARE.h"
 #include <iostream>
+#include <algorithm>
 #include <vector>
 #include <stdlib.h>  // For rand
 #include <time.h>  // For rand
@@ -39,6 +40,7 @@ TableRARE::TableRARE(int Neighbors) {
 	}
 
 	// On initialise l'id à 0
+	MACtoIdtable.resize(0);
 	IDlocalmax=0;
 
 	srand(time(NULL));
@@ -59,6 +61,8 @@ void TableRARE::initialize()
 // Une methode qui prend en entree la MAC et qui donne en sortie un ID logique (local)
 int TableRARE::MACtoIDlocal(MACAddress MAC){
 
+	MACtoIdtable.resize(IDlocalmax+1);
+
 	// On attribue un id local a la MAC
 	MACtoIdtable[IDlocalmax]=MAC;
 
@@ -72,12 +76,18 @@ int TableRARE::MACtoIDlocal(MACAddress MAC){
 
 void TableRARE::UpdateTable(int QueryId,MACAddress MAC)
 {
-	// On convertit la MACAddress en Idlocal
-	vector<MACAddress>::iterator IDlocal;
-	IDlocal = find(MACtoIdtable.begin(), MACtoIdtable.end(), MAC);
+	int IDlocal, i;
+
+	while(i<IDlocalmax) {
+		if (MACtoIdtable[IDlocal]!=MAC) {
+			IDlocal=i;
+			i=IDlocalmax;
+		}
+		i++;
+	}
 
 	// On incrémente la valeur
-	table[QueryId][*IDlocal]++;
+	table[QueryId][IDlocal]++;
 }
 
 
