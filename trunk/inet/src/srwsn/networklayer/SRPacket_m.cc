@@ -56,6 +56,7 @@ SRPacket::SRPacket(const char *name, int kind) : cPacket(name,kind)
     this->amIAlertGenerator_var = 0;
     this->alertTimeStamp_var = 0;
     this->hopCount_var = 0;
+    this->myTimestamp_var = 0;
 }
 
 SRPacket::SRPacket(const SRPacket& other) : cPacket()
@@ -82,6 +83,7 @@ SRPacket& SRPacket::operator=(const SRPacket& other)
     this->alertTimeStamp_var = other.alertTimeStamp_var;
     this->bloom_var = other.bloom_var;
     this->hopCount_var = other.hopCount_var;
+    this->myTimestamp_var = other.myTimestamp_var;
     return *this;
 }
 
@@ -98,6 +100,7 @@ void SRPacket::parsimPack(cCommBuffer *b)
     doPacking(b,this->alertTimeStamp_var);
     doPacking(b,this->bloom_var);
     doPacking(b,this->hopCount_var);
+    doPacking(b,this->myTimestamp_var);
 }
 
 void SRPacket::parsimUnpack(cCommBuffer *b)
@@ -113,6 +116,7 @@ void SRPacket::parsimUnpack(cCommBuffer *b)
     doUnpacking(b,this->alertTimeStamp_var);
     doUnpacking(b,this->bloom_var);
     doUnpacking(b,this->hopCount_var);
+    doUnpacking(b,this->myTimestamp_var);
 }
 
 int SRPacket::getMsgType() const
@@ -215,6 +219,16 @@ void SRPacket::setHopCount(uint16_t hopCount_var)
     this->hopCount_var = hopCount_var;
 }
 
+uint32_t SRPacket::getMyTimestamp() const
+{
+    return myTimestamp_var;
+}
+
+void SRPacket::setMyTimestamp(uint32_t myTimestamp_var)
+{
+    this->myTimestamp_var = myTimestamp_var;
+}
+
 class SRPacketDescriptor : public cClassDescriptor
 {
   public:
@@ -261,7 +275,7 @@ const char *SRPacketDescriptor::getProperty(const char *propertyname) const
 int SRPacketDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 10+basedesc->getFieldCount(object) : 10;
+    return basedesc ? 11+basedesc->getFieldCount(object) : 11;
 }
 
 unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -283,6 +297,7 @@ unsigned int SRPacketDescriptor::getFieldTypeFlags(void *object, int field) cons
         case 7: return FD_ISEDITABLE;
         case 8: return FD_ISCOMPOUND;
         case 9: return FD_ISEDITABLE;
+        case 10: return FD_ISEDITABLE;
         default: return 0;
     }
 }
@@ -306,6 +321,7 @@ const char *SRPacketDescriptor::getFieldName(void *object, int field) const
         case 7: return "alertTimeStamp";
         case 8: return "bloom";
         case 9: return "hopCount";
+        case 10: return "myTimestamp";
         default: return NULL;
     }
 }
@@ -329,6 +345,7 @@ const char *SRPacketDescriptor::getFieldTypeString(void *object, int field) cons
         case 7: return "uint16_t";
         case 8: return "BloomFilter";
         case 9: return "uint16_t";
+        case 10: return "uint32_t";
         default: return NULL;
     }
 }
@@ -389,6 +406,7 @@ bool SRPacketDescriptor::getFieldAsString(void *object, int field, int i, char *
         case 7: ulong2string(pp->getAlertTimeStamp(),resultbuf,bufsize); return true;
         case 8: {std::stringstream out; out << pp->getBloom(); opp_strprettytrunc(resultbuf,out.str().c_str(),bufsize-1); return true;}
         case 9: ulong2string(pp->getHopCount(),resultbuf,bufsize); return true;
+        case 10: ulong2string(pp->getMyTimestamp(),resultbuf,bufsize); return true;
         default: return false;
     }
 }
@@ -410,6 +428,7 @@ bool SRPacketDescriptor::setFieldAsString(void *object, int field, int i, const 
         case 6: pp->setAmIAlertGenerator(string2bool(value)); return true;
         case 7: pp->setAlertTimeStamp(string2ulong(value)); return true;
         case 9: pp->setHopCount(string2ulong(value)); return true;
+        case 10: pp->setMyTimestamp(string2ulong(value)); return true;
         default: return false;
     }
 }

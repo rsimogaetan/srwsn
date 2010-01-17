@@ -14,8 +14,8 @@ Define_Module(TableRARE);
 
 // Paramètres
 //TODO : mettre ceci dans le constructeur
-const int MAXQUERIES=6;  // Temperature, Pression, Son, Lumiere, Humidite, Puit
-const int MAXTYPES=4;    // Relation math, Feu, Intru, Pluie
+//const int MAXQUERIES=6;  // Temperature, Pression, Son, Lumiere, Humidite, Puit
+//const int MAXTYPES=4;    // Relation math, Feu, Intru, Pluie
 /*
 // On definit la table des requetes
 int Queries[MAXQUERIES][MAXTYPES]={{1,1,0,0},
@@ -39,12 +39,12 @@ void TableRARE::initialize()
 	// We hve not done any relaxation yet
 	QueryRelaxationRetryTime = 0;
 
-	queriesSimilarity[SENSOR_HUMIDITY] = 13; // 1 1 0 1
-	queriesSimilarity[SENSOR_LIGTH] = 8; // 1 0 0 0
-	queriesSimilarity[SENSOR_PRESSURE] = 3; // 0 0 1 1
+	queriesSimilarity[SENSOR_HUMIDITY] = 1; //  0 0 0 1
+	queriesSimilarity[SENSOR_LIGTH] = 6; // 0 1 1 0
+	queriesSimilarity[SENSOR_PRESSURE] = 8; // 1 0 0 0
 	queriesSimilarity[SENSOR_SINK] = 0; // 0 0 0 0
-	queriesSimilarity[SENSOR_SONG] = 6; // 0 1 1 0
-	queriesSimilarity[SENSOR_TEMPERATURE] = 1; // 0 0 0 1
+	queriesSimilarity[SENSOR_SONG] = 3; // 0 0 1 1
+	queriesSimilarity[SENSOR_TEMPERATURE] = 13; // 1 1 0 1
 
 	srand(time(NULL));
 }
@@ -165,7 +165,7 @@ int TableRARE::QueryRelaxation(int queryId) {
 		if(anotherQueryId == queryId) continue;
 
 		// TODO : Tu compare les mauvaises valeurs
-		if((myQueryIdNumber & anotherQueryNumber ) > (myQueryIdNumber & lastQueryNumber)){
+		if(bitSum(myQueryIdNumber & anotherQueryNumber ) > bitSum(myQueryIdNumber & lastQueryNumber)){
 			lastQueryNumber = anotherQueryNumber;
 			lastQueryId = (*it).first;
 		}
@@ -199,6 +199,16 @@ void TableRARE::increaseSimilarity(int queryId1, int queryId2){
 	// Put them back in the map
 	queriesSimilarity[queryId1] = Q1;
 	queriesSimilarity[queryId2] = Q2;
+}
+
+// Return the sum of bits in number
+int TableRARE::bitSum(uint64_t number){
+	int sum = 0;
+	while(number != 0){
+		sum += number % 2;
+		number = number >> 1;
+	}
+	return sum;
 }
 
 void TableRARE::toString(){
