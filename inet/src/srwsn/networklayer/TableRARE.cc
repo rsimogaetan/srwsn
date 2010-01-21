@@ -120,7 +120,7 @@ MACAddress TableRARE::LearningPeerSelection(int QueryId){
 	// Dans le cas ou il n'y a pas de pairs pertinents
 	// On cherche la requete précédente la plus proche de la requête courante
 	// et on itère le processus
-	// The
+	// TODO: Le mécanisme d'extention de requête devrai retourner queries ID par ressemblance décroissantes.
 	int newQueryId;
 	newQueryId = QueryRelaxation(QueryId);
 	if((newQueryId!=QueryId)&&((QueryRelaxationRetryTime < QueryRelaxationMaxRetry))){

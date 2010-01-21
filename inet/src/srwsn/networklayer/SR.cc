@@ -19,7 +19,15 @@ Define_Module(SR);
 // Initialize the number of not known sensors in the network
 uint16_t SR::numberSensorNotKnown = 0;
 uint16_t SR::numberSensorInNetwork = 0;
+long SR::NBTotalMessageSent = 0 ;
+long SR::NBTotalMessageRcvd = 0 ;
+long SR::hopCountPerRequest = 0;
 bool SR::iCanSendRequest = true;
+bool SR::stopSim = false;
+uint32_t SR::lastPosition = 0;
+
+long SR::NBMsgSentPerRequest = 0;
+long SR::NBMsgRcvdPerRequest = 0;
 
 // This module is divided in 3 parts : common part, simple sensor part and sink part
 
@@ -63,7 +71,7 @@ void SR::initialize()
     TIME_BETWEEN_ALERTS = MAX_ALERT_LIVETIME / MAX_ENTRY_RARE;
 
 	NB_EVENT_IN_LIVETIME = 64; // Maximum number of events in one livetime
-	EVENT_MAX_LIVETIME = 5000; // Time after which another event can be thrown
+	EVENT_MAX_LIVETIME = 4096; // Time after which another event can be thrown
 	LIVETIME = EVENT_MAX_LIVETIME * NB_EVENT_IN_LIVETIME;  // An event must not be relevant after this amount of time
 
 	currentRequestTimeStamp = 0; // There are no current request now
@@ -74,6 +82,7 @@ void SR::initialize()
     internalAlertMsg = new cMessage("InternalAlert");
     selfInitializationMsg = new cMessage("SelfInitialization");
     selfGenerateRequestMsg = new cMessage("selfGenerateRequest");
+    updateStatsMsg = new cMessage("updateStatsMsg");
 
     /*
      * Initialize statistics
@@ -82,9 +91,11 @@ void SR::initialize()
     numReceived = 0;
     WATCH(numSent);
     WATCH(numReceived);
-    hopCountStats.setName("hopCountStats");
-    hopCountStats.setRangeAutoUpper(0, 10, 1.5);
-    hopCountVector.setName("HopCount");
+    hopCountPerRequestStats.setName("hopCountPerRequestStats");
+    hopCountPerRequestStats.setRangeAutoUpper(0, 10, 1.5);
+    hopCountPerRequestVector.setName("hopCountPerRequest");
+    NBMsgSentPerRequestVector.setName("NBMsgSentPerRequest");
+    NBMsgRcvdPerRequestVector.setName("NBMsgRcvdPerRequest");
 
 	// Schedule the self initialization
 	scheduleAt(simTime()+1.0, selfInitializationMsg);
@@ -106,22 +117,27 @@ void SR::finish(){
 	<< " => mac extended=" << iDBuilder->getMACExt()
 	<< ", sink Distance=" << iDBuilder->getSinkDistance()
 	<< ", area=" << iDBuilder->getArea() << endl;
-	dumpNeighbors();
+//	dumpNeighbors();
+
 	bt->printFilters();
 
     // This function is called by OMNeT++ at the end of the simulation.
     EV << "Sent:     " << numSent << endl;
     EV << "Received: " << numReceived << endl;
-    EV << "Hop count, min:    " << hopCountStats.getMin() << endl;
-    EV << "Hop count, max:    " << hopCountStats.getMax() << endl;
-    EV << "Hop count, mean:   " << hopCountStats.getMean() << endl;
-    EV << "Hop count, stddev: " << hopCountStats.getStddev() << endl;
+    NBTotalMessageSent += numSent;
+    NBTotalMessageRcvd += numReceived;
+    EV << "Total Sent:     " << NBTotalMessageSent << endl;
+    EV << "Total Received: " << NBTotalMessageRcvd << endl;
+
+    EV << "Hop count, min:    " << hopCountPerRequestStats.getMin() << endl;
+    EV << "Hop count, max:    " << hopCountPerRequestStats.getMax() << endl;
+    EV << "Hop count, mean:   " << hopCountPerRequestStats.getMean() << endl;
+    EV << "Hop count, stddev: " << hopCountPerRequestStats.getStddev() << endl;
 
     recordScalar("#sent", numSent);
     recordScalar("#received", numReceived);
 
-    hopCountStats.recordAs("hop count");
-
+    hopCountPerRequestStats.recordAs("hop count per request");
 }
 
 // This method receives all message sent to this module
@@ -159,7 +175,6 @@ void SR::scheduleMsgToSendNic(SRPacket * srPacket, uint16_t delayMin){
     controlInfo->setDest(srPacket->getDestMACAddress());
     srPacket->setControlInfo(controlInfo);
 
-    // TODO : Maybe we will use doublerand() from omnetpp.h
 	uint32_t randomTime = (rand() % 10) + 1.0 + (uint32_t)delayMin;
     EV << "     Scheduling to send the message in "<< randomTime << " seconds. ";
     scheduleAt(simTime()+randomTime,srPacket);
@@ -293,6 +308,7 @@ void SR::updateDisplay(){
     char buf[80] = "";
     if (numSent>0) sprintf(buf+strlen(buf), "sent:%ld ", numSent);
     if (numReceived>0) sprintf(buf+strlen(buf), "rcvd:%ld ", numReceived);
+    if (hopCountPerRequest>0) sprintf(buf+strlen(buf), "hop:%ld ", hopCountPerRequest);
     getParentModule()->getParentModule()->getDisplayString().setTagArg("t",0,buf);
 }
 
@@ -330,6 +346,13 @@ void SR::scheduleTimeToGenerateRequest(){
 		}
 		ii++;
 	}
+	generatorBitmap += (1<<randPosInBitmap);
+
+	if(randPosInBitmap > lastPosition){
+		iAmTheLast = true;
+		lastPosition = randPosInBitmap;
+	}
+
 	// Here there is a free position in the bitmap
 	EV << "    Youpi, there is a free slot time for me. The slot time number: "<<randPosInBitmap << endl;
 
@@ -463,6 +486,7 @@ void SR::handleSRMsg(SRPacket *msg)
 		break;
 	case MSG_NORMAL:
 		numReceived++;
+		NBMsgRcvdPerRequest++;
 		handleNicNormalMsg(msg);
 		break;
 	default:
@@ -749,6 +773,7 @@ void SR::handleNicNormalMsg(SRPacket *message){
 			}
 		}
 
+		NBMsgSentPerRequest++;
 	}
 
 	// 3eme Cas: Si je forward une réponse
@@ -767,6 +792,7 @@ void SR::handleNicNormalMsg(SRPacket *message){
 		message->setDestMACAddress(nextPeerMAC);// Le peer qui va nous permettre d'atteindre le peer qui veut la réponse));
 		scheduleMsgToSendNic(message,delayMin);
 
+		NBMsgSentPerRequest++;
 	}
 
 	// 4eme Cas: Si je recois la réponse à la question que j'avais posé
@@ -777,37 +803,25 @@ void SR::handleNicNormalMsg(SRPacket *message){
 		tr->UpdateTable(message->getQueryId(),message->getSrcMACAddress());
 	    // Message arrived
 	    uint16_t hopcount = message->getHopCount();
-	    EV << "Message " << message << " arrived after " << hopcount << " hops.\n";
-	    bubble("ARRIVED, starting new one!");
-	    iCanSendRequest = true;
+	    EV << "		Message " << message << " arrived after " << hopcount << " hops.\n";
+
+		hopCountPerRequest = (long) hopcount;
+	    if(iAmTheLast)
+	    	stopSim = true;
 	}
-
-	/*
-
-    // update statistics.
-    hopCountVector.record((int)hopcount);
-    hopCountStats.collect((int)hopcount);
-
-    // Send the message right back to the sender
-    message->setHopCount(message->getHopCount()+1);
-	scheduleMsgToSendNic(message,0);
-*/
 }
 
 // Generate a random request and send it in the network
 void SR::generaterRandomRequest(){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
-	// TODO: generate a random request
-	/*
-	// Only one request on the whole network at the time
-	if(iCanSendRequest){
-		iCanSendRequest = false;
-	}else{
-		EV <<"    I cannot generate a request now. Only one request at the time on the whole network" <<endl;
-		scheduleTimeToGenerateRequest();
-		return;
-	}*/
+	if(!iCanSendRequest){
+		EV << "      I cannot generate requests now " << endl;
+//		ASSERT(false);
+	}
+	iCanSendRequest = false ;
 
+
+	// generate a random request
 	// On initialise le peer qui a potentiellement une réponse à -1 (il n'existe pas)
 	MACAddress PeerWithAnswer = MACAddress::UNSPECIFIED_ADDRESS;
 
@@ -862,6 +876,11 @@ void SR::generaterRandomRequest(){
 	// J'envoie le message
 	scheduleMsgToSendNic(myRequest,5);
 
+	hopCountPerRequest = 0 ;
+	NBMsgSentPerRequest = 0 ;
+	NBMsgRcvdPerRequest = 0 ;
+
+	scheduleAt(simTime()+(simtime_t)LIVETIME,selfGenerateRequestMsg);
 }
 
 //######################## SINK PART #####################################
@@ -920,7 +939,13 @@ void SR::SINK_handleSelfMsg(cMessage *msg){
 	    scheduleMsgToSendNic(sr,5);
 	    sensorStatus = STATUS_NORMAL;
 
-    }else if (msg == internalAlertMsg)
+	    // Schedule the time to start recording statistics
+	    SINK_updateStats();
+
+    }else if (msg == updateStatsMsg){
+    	SINK_updateStats();
+    }
+	else if (msg == internalAlertMsg)
     {
     	EV << "     An alert just occurred here. I am the sink, I take care of everything !" <<endl;
     }else if (dynamic_cast<SRPacket *>(msg)){
@@ -933,6 +958,8 @@ void SR::SINK_handleSelfMsg(cMessage *msg){
 		sendDirect(sr, getParentModule(), "ifOut",0);
 		// Change my display
 		changeDisplay();
+
+		numSent++;
     }
 }
 
@@ -968,6 +995,7 @@ void SR::SINK_handleNicDiscoveryMsg(SRPacket *msg){
 	switch (msg->getQueryType()){
 	case Q_REQUEST:
 	{
+		numReceived++;
 		EV << "     Received Q_REQUEST from " << srcMACAddress << endl;
 		// Add the sensor as neighbor
 //		addNeighbor(srcMACAddress,srcSensorID);
@@ -1002,12 +1030,29 @@ void SR::SINK_handleNicDiscoveryMsg(SRPacket *msg){
 void SR::SINK_handleNicAlertMsg(SRPacket *msg){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 	//TODO : implement this function
-
 }
 // Handle normal messages coming from the network
 void SR::SINK_handleNicNormalMsg(SRPacket *msg){
 	EV <<"[SR]::"<< __FUNCTION__ <<endl;
 	//TODO : implement this function
-
+	handleNicNormalMsg(msg);
 }
 
+void SR::SINK_updateStats(){
+	// update statistics.
+    hopCountPerRequestVector.record((int)hopCountPerRequest);
+    hopCountPerRequestStats.collect((int)hopCountPerRequest);
+    NBMsgSentPerRequestVector.record((int)NBMsgSentPerRequest);
+    NBMsgRcvdPerRequestVector.record((int)NBMsgRcvdPerRequest);
+
+	// Schedule the time to start recording statistics
+    updateDisplay();
+
+//    hopCountPerRequest += (rand()%10) - 5;
+//    double randNumber = (rand()%EVENT_MAX_LIVETIME);
+//    if(!stopSim){
+    	scheduleAt(simTime()+EVENT_MAX_LIVETIME/2, updateStatsMsg);
+//    }
+
+	iCanSendRequest = true;
+}
