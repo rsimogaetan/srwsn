@@ -66,15 +66,36 @@ class INET_API SR : public QueueBase
 	uint32_t EVENT_MAX_LIVETIME; // Time after which another event can be thrown
 	uint32_t currentRequestTimeStamp; // The timestamp of the current request on the network
 	uint64_t generatorBitmap;  // A bitmap used to know in which time slot I can generate a request
+	static uint32_t lastPosition;
 
 	cMessage *selfInitializationMsg;  // Message to send for self initialization
 	cMessage *internalAlertMsg;      // Message to throw when an internal anomaly is detected
 	cMessage *falseAlertTimeoutMsg;  // Message to schedule as timeout for false alert
 	cMessage *selfGenerateRequestMsg;  // Message to schedule a random request
+	cMessage *updateStatsMsg;  // To update statistics
 
 	static uint16_t numberSensorNotKnown; // The number of sensors not known in the network yet
 	static uint16_t numberSensorInNetwork; // The total number of connected sensor in the network
 	static bool iCanSendRequest;   // To know if I can send a request now. Only one request at the time on the network
+	static bool stopSim;
+	bool iAmTheLast;
+
+	/*
+     *  Statistic numbers
+     */
+    long numSent;      // The number of packets sent
+    long numReceived;  // The number of packets received
+    cLongHistogram hopCountPerRequestStats;  // Count the number of hops until reaches destination
+    cOutVector hopCountPerRequestVector;
+    cOutVector NBMsgSentPerRequestVector;
+    cOutVector NBMsgRcvdPerRequestVector;
+
+	static long NBTotalMessageSent;
+	static long NBTotalMessageRcvd;
+	static long hopCountPerRequest;
+    static long NBMsgSentPerRequest;
+    static long NBMsgRcvdPerRequest;
+
   public:
     SR() {};
 
@@ -116,14 +137,6 @@ class INET_API SR : public QueueBase
     virtual MACAddress idToMACAddress(uint16_t id);
     // This method helps to schedule a time when to generate a request
     virtual void scheduleTimeToGenerateRequest();
-    /*
-     *  Statistic numbers
-     */
-    long numSent;      // The number of packets sent
-    long numReceived;  // The number of packets received
-    cLongHistogram hopCountStats;  // Count the number of hops until reaches destination
-    cOutVector hopCountVector;
-
   protected:
 	  /*
 	   * Methodes used only by simple nodes
@@ -166,6 +179,7 @@ class INET_API SR : public QueueBase
 	    // Handle normal messages coming from the network
 	    virtual void SINK_handleNicNormalMsg(SRPacket *msg);
 
+	    virtual void SINK_updateStats();
 };
 
 #endif
