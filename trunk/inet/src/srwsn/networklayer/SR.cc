@@ -25,6 +25,8 @@ long SR::hopCountPerRequest = 0;
 bool SR::iCanSendRequest = true;
 bool SR::stopSim = false;
 uint32_t SR::lastPosition = 0;
+uint16_t SR::areaBitmap = 0;
+uint64_t SR::generatorBitmap = 0;
 
 long SR::NBMsgSentPerRequest = 0;
 long SR::NBMsgRcvdPerRequest = 0;
@@ -75,7 +77,6 @@ void SR::initialize()
 	LIVETIME = EVENT_MAX_LIVETIME * NB_EVENT_IN_LIVETIME;  // An event must not be relevant after this amount of time
 
 	currentRequestTimeStamp = 0; // There are no current request now
-	generatorBitmap = 0; // Anybody can send a request at the begining
 
     // Initialization of global messages
     falseAlertTimeoutMsg = new cMessage("FalseAlertTimeout");
@@ -95,7 +96,8 @@ void SR::initialize()
     hopCountPerRequestStats.setRangeAutoUpper(0, 10, 1.5);
     hopCountPerRequestVector.setName("hopCountPerRequest");
     NBMsgSentPerRequestVector.setName("NBMsgSentPerRequest");
-    NBMsgRcvdPerRequestVector.setName("NBMsgRcvdPerRequest");
+    NBMsgRcvdPerRequestVector.setName("First iteration of message set");
+    NBMsgRcvdPerRequestVector2.setName("Second iteration of the same message set");
 
 	// Schedule the self initialization
 	scheduleAt(simTime()+1.0, selfInitializationMsg);
@@ -308,7 +310,7 @@ void SR::updateDisplay(){
     char buf[80] = "";
     if (numSent>0) sprintf(buf+strlen(buf), "sent:%ld ", numSent);
     if (numReceived>0) sprintf(buf+strlen(buf), "rcvd:%ld ", numReceived);
-    if (hopCountPerRequest>0) sprintf(buf+strlen(buf), "hop:%ld ", hopCountPerRequest);
+//    if (hopCountPerRequest>0) sprintf(buf+strlen(buf), "hop:%ld ", hopCountPerRequest);
     getParentModule()->getParentModule()->getDisplayString().setTagArg("t",0,buf);
 }
 
@@ -556,7 +558,21 @@ void SR::handleNicDiscoveryMsg(SRPacket *msg){
 		    sr->setQueryType(Q_REQUEST);
 		    sr->setBloom(bt->GetBloomPerso());
 		    sr->setDestMACAddress(srcMACAddress);
-		    scheduleMsgToSendNic(sr,0);
+
+			uint16_t randPosInBitmap = (rand()%4);   // a random position in the bitmap  [0; 63]
+			int ii=0 ;  // You may not be luck enough to have a free position
+			while(((areaBitmap) & (1<<randPosInBitmap)) == 1){
+				// 1 & 1 == 1   and 0 & 1 == 0
+				// As long as that position is already set, I chose another one
+				randPosInBitmap = (rand()%4);
+				if(ii == 16){ // We have tried too much with no luck. We sould get out of here.
+					ASSERT(false);
+				}
+				ii++;
+			}
+			areaBitmap += (1<<randPosInBitmap);
+
+		    scheduleMsgToSendNic(sr,randPosInBitmap*10);
 
 		    firstSinkMsg = false;
 		}
@@ -1014,7 +1030,7 @@ void SR::SINK_handleNicDiscoveryMsg(SRPacket *msg){
 	    sr->setMsgType(MSG_DISCOVERY);
 	    sr->setQueryType(Q_REPLY);
 	    sr->setDestMACAddress(srcMACAddress);
-	    scheduleMsgToSendNic(sr,10);
+	    scheduleMsgToSendNic(sr,40);
 
 		break;
 	}
@@ -1043,7 +1059,11 @@ void SR::SINK_updateStats(){
     hopCountPerRequestVector.record((int)hopCountPerRequest);
     hopCountPerRequestStats.collect((int)hopCountPerRequest);
     NBMsgSentPerRequestVector.record((int)NBMsgSentPerRequest);
-    NBMsgRcvdPerRequestVector.record((int)NBMsgRcvdPerRequest);
+    if(simTime() < (simtime_t)LIVETIME)
+        NBMsgRcvdPerRequestVector.record((int)NBMsgRcvdPerRequest);
+    else
+    	NBMsgRcvdPerRequestVector2.recordWithTimestamp(simTime()-(simtime_t)LIVETIME, (double)NBMsgRcvdPerRequest);
+
 
 	// Schedule the time to start recording statistics
     updateDisplay();
