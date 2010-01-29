@@ -65,8 +65,10 @@ class INET_API SR : public QueueBase
 	uint32_t NB_EVENT_IN_LIVETIME; // Maximum number of events in one livetime
 	uint32_t EVENT_MAX_LIVETIME; // Time after which another event can be thrown
 	uint32_t currentRequestTimeStamp; // The timestamp of the current request on the network
-	uint64_t generatorBitmap;  // A bitmap used to know in which time slot I can generate a request
+	static uint64_t generatorBitmap;  // A bitmap used to know in which time slot I can generate a request
 	static uint32_t lastPosition;
+	static uint16_t areaBitmap;
+
 
 	cMessage *selfInitializationMsg;  // Message to send for self initialization
 	cMessage *internalAlertMsg;      // Message to throw when an internal anomaly is detected
@@ -89,6 +91,7 @@ class INET_API SR : public QueueBase
     cOutVector hopCountPerRequestVector;
     cOutVector NBMsgSentPerRequestVector;
     cOutVector NBMsgRcvdPerRequestVector;
+    cOutVector NBMsgRcvdPerRequestVector2;
 
 	static long NBTotalMessageSent;
 	static long NBTotalMessageRcvd;
