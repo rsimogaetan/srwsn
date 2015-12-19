@@ -1,0 +1,1 @@
+This project contains OMNET++ code designed for simulating a Wireless Sensor Network. The routing algorithm in that WSN is an approach of the Semantic Routing one wich already exists in Peer-To-Peer networks.
